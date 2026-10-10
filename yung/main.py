@@ -7,7 +7,7 @@ intents=discord.Intents.default()
 intents.guilds=True
 intents.guild_messages=True
 intents.message_content=True
-class PakTukang(commands.Bot):
+class yung(commands.Bot):
     async def setup_hook(self):
         await load_extensions(self)
         guild_id=os.getenv("DISCORD_GUILD_ID")
@@ -17,7 +17,7 @@ class PakTukang(commands.Bot):
             await self.tree.sync(guild=guild)
         else:
             await self.tree.sync()
-bot=PakTukang(command_prefix="p!", intents=intents)
+bot=yung(command_prefix="y!", intents=intents)
 @bot.event
 async def on_ready():
     print(f"Bot telah Online sebagai {bot.user}")
