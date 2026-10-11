@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 
 import discord
 import httpx
@@ -12,12 +13,69 @@ from google.genai import errors
 from bot.store import read, write
 
 MODEL_NAME = "gemini-3.8-flash"
-GEMINI_REQUEST_TIMEOUT_SECONDS = 10
+GEMINI_REQUEST_TIMEOUT_SECONDS = 30
+MAX_OUTPUT_TOKENS = 400
+DISCORD_MESSAGE_LIMIT = 1900
+_STREAM_DONE = object()
 logger = logging.getLogger(__name__)
 
 
 def ai_chat_settings():
     return read("ai_chat_settings.json", [], feature="ai_chat")
+
+
+async def stream_gemini_text(
+    client: genai.Client,
+    prompt: str,
+) -> AsyncIterator[str]:
+    loop = asyncio.get_running_loop()
+    chunks: asyncio.Queue[str | Exception | object] = asyncio.Queue()
+
+    def publish(value: str | Exception | object) -> None:
+        loop.call_soon_threadsafe(chunks.put_nowait, value)
+
+    def request_stream() -> None:
+        try:
+            stream = client.interactions.create(
+                model=MODEL_NAME,
+                input=prompt,
+                stream=True,
+                timeout=GEMINI_REQUEST_TIMEOUT_SECONDS,
+                system_instruction=(
+                    "Jawab menggunakan bahasa yang sama dengan pengguna. "
+                    "Berikan jawaban yang jelas dan ringkas."
+                ),
+                generation_config={"max_output_tokens": MAX_OUTPUT_TOKENS},
+            )
+            for event in stream:
+                if event.event_type == "error":
+                    error_message = event.error.message or "Unknown Gemini error"
+                    raise RuntimeError(error_message)
+                if (
+                    event.event_type == "step.delta"
+                    and event.delta.type == "text"
+                    and event.delta.text
+                ):
+                    publish(event.delta.text)
+        except Exception as error:
+            publish(error)
+        finally:
+            publish(_STREAM_DONE)
+
+    worker = asyncio.create_task(asyncio.to_thread(request_stream))
+    try:
+        while True:
+            chunk = await chunks.get()
+            if chunk is _STREAM_DONE:
+                break
+            if isinstance(chunk, Exception):
+                raise chunk
+            if isinstance(chunk, str):
+                yield chunk
+        await worker
+    finally:
+        if not worker.done():
+            await worker
 
 
 class AiChatCog(commands.Cog):
@@ -46,10 +104,10 @@ class AiChatCog(commands.Cog):
                 "Command ini hanya dapat digunakan di dalam server.",
                 ephemeral=True,
             )
-        if not os.getenv("GEMINI_API_KEY"):
+        if self.client is None:
             return await interaction.response.send_message(
-                "GEMINI_API_KEY belum diatur. Minta administrator untuk "
-                "menambahkan API key Gemini ke file .env.",
+                "AI Chat belum siap karena GEMINI_API_KEY tidak tersedia. "
+                "Periksa konfigurasi bot lalu restart bot.",
                 ephemeral=True,
             )
 
@@ -95,53 +153,95 @@ class AiChatCog(commands.Cog):
             return
 
         if self.client is None:
-            print("AI Chat gagal: GEMINI_API_KEY belum diatur.")
+            logger.error("AI Chat tidak dapat merespons: API key tidak tersedia.")
             return await message.reply(
-                "AI Chat belum tersedia karena API key Gemini belum diatur.",
+                "AI Chat belum siap. Minta administrator memeriksa "
+                "konfigurasi Gemini.",
                 mention_author=False,
             )
+
+        logger.info(
+            "AI Chat mulai memproses pesan (guild_id=%s, channel_id=%s).",
+            message.guild.id,
+            message.channel.id,
+        )
+        response_parts: list[str] = []
 
         try:
             async with message.channel.typing():
-                interaction = await asyncio.to_thread(
-                    self.client.interactions.create,
-                    model=MODEL_NAME,
-                    input=message.content,
-                    timeout=GEMINI_REQUEST_TIMEOUT_SECONDS,
+                async for text in stream_gemini_text(
+                    self.client,
+                    message.content,
+                ):
+                    response_parts.append(text)
+
+            output = "".join(response_parts)
+            if not output.strip():
+                raise ValueError("Gemini menyelesaikan request tanpa teks.")
+
+            chunks = [
+                output[index : index + DISCORD_MESSAGE_LIMIT]
+                for index in range(0, len(output), DISCORD_MESSAGE_LIMIT)
+            ]
+            await message.reply(
+                chunks[0],
+                mention_author=False,
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+            for chunk in chunks[1:]:
+                await message.channel.send(
+                    chunk,
+                    allowed_mentions=discord.AllowedMentions.none(),
                 )
-            output = interaction.output_text
-            if not output or not output.strip():
-                raise ValueError("Gemini mengembalikan jawaban kosong.")
+
+            logger.info(
+                "AI Chat selesai merespons (guild_id=%s, channel_id=%s).",
+                message.guild.id,
+                message.channel.id,
+            )
         except (httpx.TimeoutException, TimeoutError):
             logger.exception(
-                "AI Chat timeout setelah %s detik.",
+                "AI Chat timeout setelah %s detik (guild_id=%s, channel_id=%s).",
                 GEMINI_REQUEST_TIMEOUT_SECONDS,
+                message.guild.id,
+                message.channel.id,
             )
-            return await message.reply(
-                "Maaf, Gemini tidak merespons dalam 60 detik. "
-                "Coba kirim pesan lagi nanti.",
+            await message.reply(
+                f"⌛ Gemini belum selesai dalam "
+                f"{GEMINI_REQUEST_TIMEOUT_SECONDS} detik. "
+                "Coba kirim pesan yang lebih singkat.",
                 mention_author=False,
             )
-        except (errors.APIError, httpx.HTTPError, ValueError):
-            logger.exception("AI Chat gagal memproses pesan melalui Gemini.")
-            return await message.reply(
-                "Maaf, AI Chat sedang mengalami kendala. Coba lagi nanti.",
+        except errors.APIError as error:
+            logger.exception(
+                "Gemini API error (status=%s, guild_id=%s, channel_id=%s).",
+                error.code,
+                message.guild.id,
+                message.channel.id,
+            )
+            await message.reply(
+                f"⚠️ Gemini menolak atau gagal memproses permintaan "
+                f"(status {error.code}). Periksa log bot untuk detail.",
                 mention_author=False,
             )
-
-        chunks = [
-            output[index : index + 2000]
-            for index in range(0, len(output), 2000)
-        ]
-        await message.reply(
-            chunks[0],
-            mention_author=False,
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
-        for chunk in chunks[1:]:
-            await message.channel.send(
-                chunk,
-                allowed_mentions=discord.AllowedMentions.none(),
+        except (httpx.HTTPError, RuntimeError, ValueError):
+            logger.exception(
+                "AI Chat gagal memproses streaming Gemini "
+                "(guild_id=%s, channel_id=%s).",
+                message.guild.id,
+                message.channel.id,
+            )
+            await message.reply(
+                "⚠️ AI Chat gagal memproses pesan. "
+                "Periksa log bot untuk detail.",
+                mention_author=False,
+            )
+        except discord.HTTPException:
+            logger.exception(
+                "Gagal mengirim jawaban/error AI Chat "
+                "(guild_id=%s, channel_id=%s).",
+                message.guild.id,
+                message.channel.id,
             )
 
 

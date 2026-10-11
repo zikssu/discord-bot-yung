@@ -46,6 +46,7 @@ Nama bot yang dipakai di dalam code dan UI adalah `yung`. Entry point aplikasi b
 - `/autothread` — menambahkan, menghapus, atau melihat daftar auto-thread di channel tertentu.
 - `/auto-reminder` — membuat pengingat berulang otomatis di channel atau thread tertentu dengan interval menit dan opsi mention role.
 - `/setup-ai-chat` — memilih channel khusus untuk percakapan otomatis dengan Gemini.
+- AI Chat menampilkan indikator mengetik selama diproses, lalu mengirim jawaban tanpa pesan placeholder atau edit; jawaban panjang otomatis dibagi agar sesuai batas pesan Discord.
 
 ### 3. Feedback & Komunikasi
 - `/setup-feedback` — menyiapkan panel feedback box untuk server.
@@ -185,6 +186,7 @@ Versi utama proyek saat ini:
 discord.py>=2.6,<3.0
 python-dotenv>=1.0,<2.0
 Pillow>=11.0
+google-genai>=2.29.0
 ```
 
 ---
@@ -201,14 +203,14 @@ cd discord-bot-yung
 ### 2. Buat virtual environment
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
 ```
 
-### 3. Install dependency
+### 3. Jalankan bot
 
 ```bash
-pip install -r requirements.txt
+.venv/bin/python yung/app.py
 ```
 
 ---
@@ -248,17 +250,17 @@ Contoh permission yang umum diperlukan:
 
 ## Menjalankan Bot
 
-Dari root project, jalankan:
+Jalankan dari root repository menggunakan Python dari virtual environment
+agar dependency seperti `discord.py` ditemukan:
 
 ```bash
-python yung/app.py
+.venv/bin/python yung/app.py
 ```
 
-Atau jika ingin menjalankan dari folder `yung`:
+Jika terminal sedang berada di folder `yung`:
 
 ```bash
-cd yung
-python app.py
+../.venv/bin/python app.py
 ```
 
 Saat bot berhasil terhubung, terminal akan menampilkan indikator bahwa bot sudah online.
