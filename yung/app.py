@@ -17,7 +17,22 @@ class yung(commands.Bot):
             await self.tree.sync(guild=guild)
         else:
             await self.tree.sync()
-bot=yung(command_prefix="y!", intents=intents)
+
+# =========================
+# BOT PRESENCE (yang terlihat di bawah nama bot)
+# =========================
+# STATUS koneksi: pilih salah satu dengan mengganti `discord.Status.online`.
+# discord.Status.online    = Online (titik hijau)
+# discord.Status.idle      = Idle (bulan kuning)
+# discord.Status.dnd       = Do Not Disturb (bulatan merah)
+# discord.Status.invisible = terlihat offline
+BOT_STATUS = discord.Status.do_not_disturb
+
+bot=yung(
+    command_prefix="y!",
+    intents=intents,
+    status=BOT_STATUS,
+)
 @bot.event
 async def on_ready():
     print(f"Bot telah Online sebagai {bot.user}")
