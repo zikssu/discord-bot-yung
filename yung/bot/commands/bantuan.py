@@ -129,7 +129,7 @@ class Bantuan(commands.Cog):
 
     @app_commands.command(
         name="bantuan",
-        description="Menampilkan pusat bantuan Homi"
+        description="Menampilkan pusat bantuan yung."
     )
     async def bantuan(self, interaction: discord.Interaction):
         await interaction.response.send_message(

@@ -31,7 +31,7 @@ Proyek ini berfungsi sebagai bot Discord all-in-one untuk komunitas `home.`. Fok
 - menyediakan fitur interaksi publik seperti feed, feedback, ticket, dan profil masyarakat,
 - menjaga UX anggota tetap ramah dan interaktif melalui slash command.
 
-Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini sendiri berada di project `discord-bot-yung` dan menggunakan package `yung` sebagai entry point utama.
+Nama bot yang dipakai di dalam code dan UI adalah `yung`. Entry point aplikasi berada di `yung/app.py`, sementara repository ini menggunakan package `yung`.
 
 ---
 
@@ -48,32 +48,35 @@ Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini s
 
 ### 3. Feedback & Komunikasi
 - `/setup-feedback` — menyiapkan panel feedback box untuk server.
-- Kritik dan saran dapat dikirim dengan modal dan diposting ke channel khusus.
-- Postingan feedback dilengkapi thread komentar dan reaksi untuk evaluasi masyarakat.
+- Anggota dapat mengirim Saran, Kritik, atau Rating melalui modal ke channel khusus.
+- Pengirim dapat mengedit masukan miliknya; postingan dilengkapi thread komentar dan reaksi.
 
 ### 4. Home Feed
 - `/setup-feed` — mengatur channel feed dan log feed.
 - `/buat-postingan` — memfasilitasi anggota untuk membuat postingan komunitas.
 - Mendukung kategori seperti `Berita & Informasi` dan `Umum`.
 - Dukungan media URL multi-link, upload gambar, reaksi like/dislike, serta komentar di thread.
-- Tombol Like/Dislike menggunakan aset ikon di `yung/assets/feed/`; bot memerlukan izin `Manage Emojis and Stickers` dan slot emoji server yang tersedia.
+- Deskripsi postingan ditampilkan sebagai kutipan; Like/Dislike menggunakan ikon dari aset di `yung/assets/feed/`.
+- Pemilik postingan dapat mengedit atau menghapus postingannya; penghapusan juga membersihkan thread komentar jika bot memiliki izin.
+- Bot membuat emoji server dari ikon Like/Dislike, sehingga memerlukan izin `Manage Emojis and Stickers` dan slot emoji yang tersedia.
 
 ### 5. Ticket System
 - `/setup-ticket` — menyiapkan panel tiket dan konfigurasi channel log.
 - Kategori ticket seperti `Help`, `Lady Verification`, `Partnership`, `User Report`, dan `Bug Report`.
 - Memungkinkan pembuatan tiket dari panel interaktif dan log terkait manajemen tiket.
 
-### 6. Kartu Identitas Penghuni (KIP)
-- `/setup-kip` — menyiapkan panel KIP.
-- Anggota dapat membuat, melihat, mengedit, dan menghapus KIP mereka.
-- KIP dibuat dalam format gambar PNG berbasis PIL/Pillow dan disimpan ke channel tertentu.
-- Setiap anggota hanya dapat memiliki satu KIP per server.
+### 6. Member Identity Card (MIC)
+- `/setup-mic` — menyiapkan panel MIC.
+- Anggota dapat membuat, melihat, mengedit, dan menghapus MIC mereka.
+- MIC dirender menjadi gambar PNG berbasis Pillow dan diposting ke channel yang dikonfigurasi.
+- Setiap anggota dapat memiliki satu MIC per server.
 
 ### 7. Moots
 - `/setup-moots` — menyiapkan panel Moots.
 - Anggota dapat mengunggah link Instagram, TikTok, Facebook, X, dan WhatsApp Channel.
-- Profil ditampilkan dengan tombol tautan dan dapat diedit atau dihapus oleh pemiliknya.
-- Bot memerlukan izin `Manage Emojis and Stickers` dan slot emoji server yang tersedia untuk membuat ikon tombol dari aset logo.
+- Profil menampilkan tombol tautan media sosial; Edit, Hapus, dan Upload berada di baris kontrol terpisah.
+- Profil dapat diedit atau dihapus oleh pemiliknya. Ikon tombol dibuat dari logo di `yung/assets/moots/`.
+- Bot memerlukan izin `Manage Emojis and Stickers` dan slot emoji server yang tersedia.
 
 ---
 
@@ -91,7 +94,7 @@ Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini s
 | `/setup-ticket` | Administrasi | Menyiapkan panel ticket | `Manage Channels` |
 | `/setup-feed` | Administrasi | Menyiapkan panel Home Feed dan channel log | `Manage Server` |
 | `/buat-postingan` | Home Feed | Membuat postingan feed | Semua pengguna |
-| `/setup-kip` | Administrasi | Menyiapkan panel KIP | `Manage Server` |
+| `/setup-mic` | Administrasi | Menyiapkan panel Member Identity Card | `Manage Server` |
 | `/setup-moots` | Administrasi | Menyiapkan panel Moots | `Manage Channels` |
 
 > Beberapa command menambahkan modal, select menu, dan button UI. Bot juga memerlukan permission yang sesuai untuk mengirim embed, membuat thread, mengelola pesan, dan memproses attachment.
@@ -106,7 +109,19 @@ Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini s
 ├── requirements.txt
 ├── .env.example
 ├── yung/
-│   ├── main.py
+│   ├── app.py
+│   ├── assets/
+│   │   ├── feed/
+│   │   │   ├── like_brawl_stars.png
+│   │   │   └── dislike_brawl_stars.png
+│   │   ├── fonts/
+│   │   │   └── font files for MIC rendering
+│   │   └── moots/
+│   │       ├── Instagram.png
+│   │       ├── tiktok.png
+│   │       ├── facebook.png
+│   │       ├── x.png
+│   │       └── whatsapp.png
 │   └── bot/
 │       ├── __init__.py
 │       ├── loader.py
@@ -135,25 +150,16 @@ Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini s
 │               ├── ticket/
 │               │   ├── ticket.py
 │               │   └── data/
-│               ├── kip/
-│               │   ├── kip.py
+│               ├── mic/
+│               │   ├── mic.py
 │               │   └── data/
 │               └── moots/
 │                   ├── moots.py
 │                   └── data/
-└── yung/assets/
-    ├── fonts/
-    │   └── font files for KIP rendering
-    └── moots/
-        ├── Instagram.png
-        ├── tiktok.png
-        ├── facebook.png
-        ├── x.png
-        └── whatsapp.png
 ```
 
 Penjelasan singkat:
-- `yung/main.py` adalah entry point utama bot.
+- `yung/app.py` adalah entry point utama bot.
 - `yung/bot/loader.py` memuat semua extension/cog.
 - `yung/bot/store.py` adalah helper baca/tulis file JSON untuk data fitur lokal.
 - Setiap fitur memiliki folder sendiri beserta data JSON dan fungsionalitas yang terikat.
@@ -165,7 +171,7 @@ Penjelasan singkat:
 - Python 3
 - `discord.py` — library utama untuk Discord API dan command framework
 - `python-dotenv` — membaca variabel environment dari `.env`
-- `Pillow` — menghasilkan gambar KIP dan tampilan visual untuk fitur berbasis image
+- `Pillow` — merender gambar MIC dan mengolah aset emoji untuk Feed dan Moots
 
 Versi utama proyek saat ini: 
 
@@ -228,6 +234,7 @@ Contoh permission yang umum diperlukan:
 - Embed Links
 - Attach Files
 - Mention Everyone
+- Manage Emojis and Stickers (untuk ikon tombol Feed dan Moots)
 
 ---
 
@@ -236,14 +243,14 @@ Contoh permission yang umum diperlukan:
 Dari root project, jalankan:
 
 ```bash
-python yung/main.py
+python yung/app.py
 ```
 
 Atau jika ingin menjalankan dari folder `yung`:
 
 ```bash
 cd yung
-python main.py
+python app.py
 ```
 
 Saat bot berhasil terhubung, terminal akan menampilkan indikator bahwa bot sudah online.
@@ -257,8 +264,11 @@ Bot ini menggunakan penyimpanan lokal berbasis file JSON, bukan database ekstern
 - `yung/bot/commands/automasi/autothread/data/autothread.json`
 - `yung/bot/commands/automasi/auto_reminder/data/auto_reminders.json`
 - `yung/bot/commands/automasi/feed/data/feed_posts.json`
-- `yung/bot/commands/automasi/feedback/data/saran.json`
-- `yung/bot/commands/automasi/kip/data/kip.json`
+- `yung/bot/commands/automasi/feed/data/feed_settings.json`
+- `yung/bot/commands/automasi/feedback/data/feedback.json`
+- `yung/bot/commands/automasi/mic/data/mic.json`
+- `yung/bot/commands/automasi/mic/data/mic_settings.json`
+- `yung/bot/commands/automasi/moots/data/moots_settings.json`
 - `yung/bot/commands/automasi/moots/data/moots.json`
 - `yung/bot/commands/automasi/ticket/data/tickets.json`
 
@@ -270,7 +280,7 @@ Karena data tersimpan secara lokal, backup reguler sangat disarankan jika server
 
 Bot menggunakan pendekatan modular dengan extension per fitur:
 
-- `main.py` memulai bot dan memanggil loader.
+- `app.py` memulai bot dan memanggil loader.
 - `loader.py` memuat semua extension.
 - Setiap fitur diorganisasi dalam folder independen.
 - Semua logika interaksi UI (button/select/modal) berada di file fitur terkait.
@@ -299,7 +309,7 @@ JSON Storage / Discord API
   - bot sudah masuk server,
   - permission channel dan role benar,
   - file `.env` sudah dibuat.
-- Untuk fitur KIP, font yang dibutuhkan berada di `yung/assets/fonts/`.
+- Untuk fitur MIC, font yang dibutuhkan berada di `yung/assets/fonts/`.
 - Pastikan file data JSON dapat ditulis oleh user/process yang menjalankan bot.
 
 ---
