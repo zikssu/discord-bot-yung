@@ -4,12 +4,25 @@ from discord.ext import commands
 from bot.store import read, write
 from bot.commands.automasi.common import BANNER_URL
 from datetime import datetime, timezone
+from io import BytesIO
+from pathlib import Path
+from PIL import Image, ImageOps
 from urllib.parse import urlparse
 import uuid
+
+REACTION_ASSETS = {
+    "like": "like_brawl_stars.png",
+    "dislike": "dislike_brawl_stars.png",
+}
+FEED_ASSETS_DIR = Path(__file__).resolve().parents[4] / "assets" / "feed"
 
 CATEGORIES = [
     ("Berita & Informasi", "📰"),
     ("Umum", "🌐"),
+    ("Hiburan", "🎭"),
+    ("Pendidikan", "📚"),
+    ("Gaya Hidup (Lifestyle)", "🏖️"),
+    ("Edukasi & Tutorial", "🛠️"),
 ]
 
 def posts():
@@ -23,6 +36,48 @@ def settings():
 
 def save_settings(data):
     write("feed_settings.json", data, feature="feed")
+
+def reaction_emoji_ids(guild_id):
+    config = next(
+        (item for item in settings() if item.get("guild_id") == str(guild_id)),
+        None,
+    )
+    return config.get("reaction_emoji_ids", {}) if config else {}
+
+def reaction_emoji(guild_id, action):
+    emoji_id = reaction_emoji_ids(guild_id).get(action)
+    if emoji_id:
+        return f"<:feed_{action}:{emoji_id}>"
+    return "👍🏻" if action == "like" else "👎🏻"
+
+def reaction_emoji_image(filename):
+    with Image.open(FEED_ASSETS_DIR / filename) as source:
+        image = ImageOps.contain(
+            source.convert("RGBA"),
+            (128, 128),
+            method=Image.Resampling.LANCZOS,
+        )
+    buffer = BytesIO()
+    image.save(buffer, format="PNG", optimize=True)
+    return buffer.getvalue()
+
+async def ensure_feed_reaction_emojis(guild):
+    existing = {emoji.name: emoji for emoji in guild.emojis}
+    emoji_ids = {}
+
+    for action, filename in REACTION_ASSETS.items():
+        name = f"feed_{action}"
+        emoji = existing.get(name)
+        if emoji is None:
+            emoji = await guild.create_custom_emoji(
+                name=name,
+                image=reaction_emoji_image(filename),
+                reason="Menyiapkan ikon Like/Dislike Home Feed",
+            )
+            existing[name] = emoji
+        emoji_ids[action] = str(emoji.id)
+
+    return emoji_ids
 
 def valid_url(value):
     if not value:
@@ -68,16 +123,22 @@ def is_image_url(value):
     )
 
 def post_embed(data):
+    like_emoji = reaction_emoji(data.get("guild_id"), "like")
+    dislike_emoji = reaction_emoji(data.get("guild_id"), "dislike")
+    caption = data.get("caption") or " "
+    quoted_caption = "\n".join(f"> {line}" for line in caption.splitlines())
     embed = discord.Embed(
         title=data.get("title") or "Postingan",
-        description=data.get("caption") or " ",
+        description=f"{quoted_caption}\n\n",
         color=discord.Color.from_rgb(154, 185, 195),
         timestamp=datetime.fromisoformat(data["created_at"]),
     )
     embed.set_author(
         name=data.get("author_name", "Penghuni home."),
-        icon_url=data.get("author_avatar") or discord.Embed.Empty,
     )
+    author_avatar = data.get("author_avatar")
+    if author_avatar:
+        embed.set_thumbnail(url=author_avatar)
     # Metadata dibuat 3 kolom inline:
     # Kategori berada di sebelah kiri Pengirim, lalu Reaksi di sebelah kanan.
     category = data.get("category") or "Umum"
@@ -129,13 +190,12 @@ def post_embed(data):
     embed.add_field(
         name="🤔 Reaksi: ",
         value=(
-            f'<:kh_like_brawlstars:1547921057393025066>: **{len(data.get("likes", []))}** | '
-            f'<:kh_dislike_brawlstars:1547921092465655859>: **{len(data.get("dislikes", []))}**'
+            f'{like_emoji}: **{len(data.get("likes", []))}** | '
+            f'{dislike_emoji}: **{len(data.get("dislikes", []))}**'
         ),
         inline=False,
     )
 
-    embed.set_footer(text="home. • Home Feed")
     return embed
 
 class CategorySelect(discord.ui.Select):
@@ -287,7 +347,11 @@ class PostModal(discord.ui.Modal):
         try:
             message = await channel.send(
                 embed=post_embed(data),
-                view=PostView(self.cog, data["id"]),
+                view=PostView(
+                    self.cog,
+                    data["id"],
+                    reaction_emoji_ids(data["guild_id"]),
+                ),
             )
             data["message_id"] = str(message.id)
 
@@ -323,7 +387,7 @@ class PostModal(discord.ui.Modal):
         )
         if isinstance(log_channel, discord.TextChannel):
             log_embed = discord.Embed(
-                title="🧾 Log Home Feed",
+                title="🧾 Log Feed",
                 description=f"Postingan baru diterbitkan: [Lihat postingan]({message.jump_url})",
                 color=discord.Color.blurple(),
                 timestamp=datetime.now(timezone.utc),
@@ -466,7 +530,11 @@ class EditPostModal(discord.ui.Modal):
         try:
             await message.edit(
                 embed=post_embed(data),
-                view=PostView(self.cog, self.post_id),
+                view=PostView(
+                    self.cog,
+                    self.post_id,
+                    reaction_emoji_ids(data.get("guild_id")),
+                ),
             )
         except discord.Forbidden:
             return await interaction.response.send_message(
@@ -487,31 +555,53 @@ class EditPostModal(discord.ui.Modal):
         )
 
 class PostView(discord.ui.View):
-    def __init__(self, cog, post_id):
+    def __init__(self, cog, post_id, emoji_ids=None):
         super().__init__(timeout=None)
         self.cog = cog
         self.post_id = post_id
+        emoji_ids = emoji_ids or {}
+        like_emoji_id = emoji_ids.get("like")
+        dislike_emoji_id = emoji_ids.get("dislike")
         self.add_item(discord.ui.Button(
-            emoji="<:kh_like_brawlstars:1547921057393025066>",
+            emoji=(
+                discord.PartialEmoji(name="feed_like", id=int(like_emoji_id))
+                if like_emoji_id
+                else "👍🏻"
+            ),
             style=discord.ButtonStyle.primary,
             custom_id=f"feed:like:{post_id}",
+            row=0,
         ))
         self.add_item(discord.ui.Button(
-            emoji="<:kh_dislike_brawlstars:1547921092465655859>",
+            emoji=(
+                discord.PartialEmoji(name="feed_dislike", id=int(dislike_emoji_id))
+                if dislike_emoji_id
+                else "👎🏻"
+            ),
             style=discord.ButtonStyle.danger,
             custom_id=f"feed:dislike:{post_id}",
+            row=0,
         ))
         self.add_item(discord.ui.Button(
             label="Edit",
             emoji="✏️",
             style=discord.ButtonStyle.secondary,
             custom_id=f"feed:edit:{post_id}",
+            row=1,
         ))
         self.add_item(discord.ui.Button(
             label="Upload",
             emoji="📝",
             style=discord.ButtonStyle.success,
             custom_id=f"feed:upload:{post_id}",
+            row=1,
+        ))
+        self.add_item(discord.ui.Button(
+            label="Hapus",
+            emoji="🗑️",
+            style=discord.ButtonStyle.danger,
+            custom_id=f"feed:delete:{post_id}",
+            row=1,
         ))
         for item in self.children:
             item.callback = self.handle
@@ -545,6 +635,68 @@ class PostView(discord.ui.View):
                 ephemeral=True,
             )
 
+        if action == "delete":
+            if str(interaction.user.id) != str(data.get("author_id")):
+                return await interaction.response.send_message(
+                    "Kamu hanya dapat menghapus postingan milikmu sendiri.",
+                    ephemeral=True,
+                )
+
+            message = interaction.message
+            if message is None:
+                return await interaction.response.send_message(
+                    "Pesan postingan tidak ditemukan, jadi tidak ada yang dihapus.",
+                    ephemeral=True,
+                )
+
+            thread_cleanup_failed = False
+            thread_id = data.get("thread_id")
+            if interaction.guild and thread_id:
+                thread = interaction.guild.get_thread(int(thread_id))
+                if thread is None and isinstance(message.channel, discord.TextChannel):
+                    thread = message.channel.get_thread(int(thread_id))
+                if thread is not None:
+                    try:
+                        await thread.delete(reason="Postingan Feed dihapus pemiliknya")
+                    except discord.NotFound:
+                        pass
+                    except (discord.Forbidden, discord.HTTPException) as exc:
+                        thread_cleanup_failed = True
+                        print(
+                            f"[Feed] Gagal menghapus thread {thread_id} "
+                            f"untuk postingan {post_id}: {exc}"
+                        )
+
+            try:
+                await message.delete()
+            except discord.NotFound:
+                pass
+            except discord.Forbidden as exc:
+                print(f"[Feed] Tidak dapat menghapus pesan {message.id}: {exc}")
+                return await interaction.response.send_message(
+                    "Bot tidak memiliki izin untuk menghapus pesan postingan.",
+                    ephemeral=True,
+                )
+            except discord.HTTPException as exc:
+                print(f"[Feed] Gagal menghapus pesan {message.id}: {exc}")
+                return await interaction.response.send_message(
+                    f"Postingan gagal dihapus oleh Discord: `{exc}`",
+                    ephemeral=True,
+                )
+
+            all_posts.remove(data)
+            save_posts(all_posts)
+            result = "✅ Postingan Feed berhasil dihapus."
+            if thread_cleanup_failed:
+                result += (
+                    "\n⚠️ Postingan terhapus, tetapi thread komentarnya tidak "
+                    "dapat dihapus. Periksa izin bot pada thread."
+                )
+            return await interaction.response.send_message(
+                result,
+                ephemeral=True,
+            )
+
         if action not in ("like", "dislike"):
             return await interaction.response.send_message(
                 "Aksi tidak dikenali.", ephemeral=True
@@ -566,13 +718,18 @@ class PostView(discord.ui.View):
         try:
             await interaction.message.edit(
                 embed=post_embed(data),
-                view=PostView(self.cog, post_id),
+                view=PostView(
+                    self.cog,
+                    post_id,
+                    reaction_emoji_ids(data.get("guild_id")),
+                ),
             )
         except discord.HTTPException:
             pass
 
         await interaction.response.send_message(
-            f"<:kh_like_brawlstars:1547921057393025066> {len(likes)}  |  <:kh_dislike_brawlstars:1547921092465655859> {len(dislikes)}",
+            f"{reaction_emoji(data.get('guild_id'), 'like')} {len(likes)}  |  "
+            f"{reaction_emoji(data.get('guild_id'), 'dislike')} {len(dislikes)}",
             ephemeral=True,
         )
 
@@ -583,7 +740,13 @@ class Feed(commands.Cog):
     async def cog_load(self):
         self.bot.add_view(FeedPanelView(self))
         for post in posts():
-            self.bot.add_view(PostView(self, post["id"]))
+            self.bot.add_view(
+                PostView(
+                    self,
+                    post["id"],
+                    reaction_emoji_ids(post.get("guild_id")),
+                )
+            )
 
     @app_commands.command(
         name="setup-feed",
@@ -604,12 +767,43 @@ class Feed(commands.Cog):
             return await interaction.response.send_message(
                 "Gunakan di server.", ephemeral=True
             )
+        guild = interaction.guild
 
         await interaction.response.defer(ephemeral=True, thinking=True)
 
+        try:
+            reaction_emoji_ids_saved = await ensure_feed_reaction_emojis(guild)
+        except discord.Forbidden as exc:
+            print(f"[Feed] Bot tidak dapat membuat emoji server: {exc}")
+            return await interaction.followup.send(
+                "❌ Bot tidak memiliki izin **Manage Emojis and Stickers** "
+                "atau server kehabisan slot emoji. Beri izin/slot yang cukup, "
+                "lalu jalankan `/setup-feed` kembali.",
+                ephemeral=True,
+            )
+        except discord.HTTPException as exc:
+            print(f"[Feed] Gagal membuat emoji Like/Dislike: {exc}")
+            if exc.code == 30008:
+                return await interaction.followup.send(
+                    "❌ Slot emoji server sudah penuh. Hapus atau tambah slot "
+                    "emoji, lalu jalankan `/setup-feed` kembali.",
+                    ephemeral=True,
+                )
+            return await interaction.followup.send(
+                f"❌ Ikon Like/Dislike gagal dibuat: `{exc}`",
+                ephemeral=True,
+            )
+        except OSError as exc:
+            print(f"[Feed] Gagal membaca aset ikon reaksi: {exc}")
+            return await interaction.followup.send(
+                "❌ Aset ikon Like/Dislike tidak dapat dibaca. Periksa file di "
+                "`yung/assets/feed/`.",
+                ephemeral=True,
+            )
+
         embed = discord.Embed(
             description=(
-                "# 📱 Home Feed home.\nBagikan berita, informasi, dokumentasi, kegiatan, dan cerita penghuni di sini.\n\n"
+                "# 📱 Feed Server\nBagikan berita, informasi, dokumentasi, kegiatan, dan cerita penghuni di sini.\n\n"
                 "**Cara membuat postingan:** tekan tombol **Upload**, pilih "
                 'kategori, lalu isi judul, caption, URL media/link, dan/atau unggah gambar '
                 'jika diperlukan. Untuk beberapa link, gunakan pemisah "` | `". '
@@ -639,13 +833,56 @@ class Feed(commands.Cog):
             "channel_id": str(channel.id),
             "log_channel_id": str(log_channel.id),
             "panel_message_id": str(panel_message.id),
+            "reaction_emoji_ids": reaction_emoji_ids_saved,
         })
         save_settings(saved)
 
-        await interaction.followup.send(
+        updated_posts = 0
+        failed_posts = []
+        for post in posts():
+            if (
+                str(post.get("guild_id")) != str(guild.id)
+                or not post.get("message_id")
+                or not post.get("channel_id")
+            ):
+                continue
+
+            post_channel = guild.get_channel(int(post["channel_id"]))
+            if not isinstance(post_channel, discord.TextChannel):
+                failed_posts.append(post.get("id", post["message_id"]))
+                continue
+
+            try:
+                post_message = await post_channel.fetch_message(
+                    int(post["message_id"])
+                )
+                await post_message.edit(
+                    embed=post_embed(post),
+                    view=PostView(self, post["id"], reaction_emoji_ids_saved)
+                )
+                updated_posts += 1
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException) as exc:
+                failed_posts.append(post.get("id", post["message_id"]))
+                print(
+                    f"[Feed] Gagal memperbarui ikon pada postingan "
+                    f"{post.get('id', post['message_id'])}: {exc}"
+                )
+
+        result = (
             f"✅ Feed disiapkan di {channel.mention}\n"
             f"🧾 Log: {log_channel.mention}\n"
-            f"{panel_message.jump_url}",
+            f"Ikon Like/Dislike dari aset Feed diterapkan ke "
+            f"{updated_posts} postingan lama.\n"
+            f"{panel_message.jump_url}"
+        )
+        if failed_posts:
+            result += (
+                f"\n⚠️ {len(failed_posts)} postingan lama tidak dapat diperbarui. "
+                "Periksa izin bot dan channel postingan tersebut."
+            )
+
+        await interaction.followup.send(
+            result,
             ephemeral=True,
         )
 

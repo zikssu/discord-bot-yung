@@ -9,19 +9,19 @@ import asyncio
 import aiohttp
 from io import BytesIO
 
-KIP_THREAD_NAME = "💬 Comment Section"
+MIC_THREAD_NAME = "💬 Comment Section"
 
-def kip_cards():
-    return read("kip.json", [], feature="kip")
+def mic_cards():
+    return read("mic.json", [], feature="mic")
 
-def save_kip_cards(data):
-    write("kip.json", data, feature="kip")
+def save_mic_cards(data):
+    write("mic.json", data, feature="mic")
 
-def kip_settings():
-    return read("kip_settings.json", [], feature="kip")
+def mic_settings():
+    return read("mic_settings.json", [], feature="mic")
 
-def save_kip_settings(data):
-    write("kip_settings.json", data, feature="kip")
+def save_mic_settings(data):
+    write("mic_settings.json", data, feature="mic")
 
 def format_date_id(value):
     """Format tanggal menjadi gaya Indonesia, contoh: 02 Oktober 2026."""
@@ -46,14 +46,14 @@ def format_date_id(value):
 
     return text
 
-def render_kip(data, avatar_bytes):
-    """Generate KIP bertema home. dengan Pillow tanpa template gambar eksternal."""
+def render_mic(data, avatar_bytes):
+    """Generate MIC bertema home. dengan Pillow tanpa template gambar eksternal."""
     from PIL import Image, ImageDraw, ImageFont, ImageOps
     import random
 
     WIDTH, HEIGHT = 1600, 900
 
-    # Palet KIP: kombinasi warna yang baru sesuai referensi komunitas.
+    # Palet MIC: kombinasi warna yang baru sesuai referensi komunitas.
     MIST = (154, 185, 195, 255)
     FOREST = (44, 51, 49, 255)
     NIGHT = (35, 36, 41, 255)
@@ -246,12 +246,12 @@ def render_kip(data, avatar_bytes):
     draw.text((80, 68), "KARTU IDENTITAS PENGHUNI", font=font(58, "mono"), fill=WHITE)
     draw.text((82, 138), "HOME.", font=font(25, "bold"), fill=GOLD)
 
-    card_number = str(data.get("card_number", "KIW-00000"))
+    card_number = str(data.get("card_number", "MIC-00000"))
     draw.rounded_rectangle((1235, 78, 1518, 132), radius=27, fill=GREEN_DARK, outline=GOLD, width=2)
     centered_text(card_number, (1240, 80, 1513, 130), font(21, "mono"), WHITE)
 
     # Avatar profil Discord.
-    # Ukuran diperkecil agar proporsional dengan layout kartu dan tidak mendominasi isi KIW.
+    # Ukuran diperkecil agar proporsional dengan layout kartu dan tidak mendominasi isi MIC.
     # Profil avatar dipusatkan di area kiri setelah teks di bawah avatar dihapus.
     avatar_box = (108, 260, 468, 690)
     avatar_size = 320
@@ -288,7 +288,7 @@ def render_kip(data, avatar_bytes):
             image.paste(avatar, (avatar_x, avatar_y), mask)
             avatar_ok = True
         except Exception as avatar_error:
-            print(f"[KIW] Gagal memproses gambar avatar: {avatar_error}")
+            print(f"[MIC] Gagal memproses gambar avatar: {avatar_error}")
 
     if not avatar_ok:
         # Hanya gunakan inisial jika Discord/CDN benar-benar tidak menyediakan gambar.
@@ -316,9 +316,9 @@ def render_kip(data, avatar_bytes):
     draw.text((570, 724), joined, font=font(25, "bold"), fill=WHITE)
 
     # Footer identitas komunitas.
-    footer = "Kartu Identitas Penghuni • home."
+    footer = "Member Identity Card (MIC)"
     centered_text(footer, (1010, 685, 1515, 735), font(20, "bold"), GOLD)
-    centered_text("Data penghuni melalui sistem komunitas", (1010, 725, 1515, 765), font(16), MUTED)
+    centered_text("Data member melalui sistem komunitas", (1010, 725, 1515, 765), font(16), MUTED)
 
     # Tidak ada progress bar / loading bar di bagian bawah.
     output = BytesIO()
@@ -326,7 +326,7 @@ def render_kip(data, avatar_bytes):
     output.seek(0)
     return output
 
-class KIWModal(discord.ui.Modal):
+class MICModal(discord.ui.Modal):
     def __init__(self, cog, mode="create", existing=None):
         super().__init__(title="Buat Kartu Identitas" if mode == "create" else "Edit Kartu Identitas")
         self.cog = cog
@@ -342,7 +342,7 @@ class KIWModal(discord.ui.Modal):
         )
         self.age_input = discord.ui.TextInput(
             label="Umur",
-            placeholder="Contohnya: 13",
+            placeholder="Contohnya umur kamu itu 13.",
             default=str(existing.get("age", "")) or None,
             max_length=3,
             required=True,
@@ -400,10 +400,10 @@ class KIWModal(discord.ui.Modal):
                 ephemeral=True,
             )
 
-        await self.cog.save_kip(interaction, values, self.mode)
+        await self.cog.save_mic(interaction, values, self.mode)
 
-class KIWPanelView(discord.ui.View):
-    """Persistent buttons for the main KIW setup panel."""
+class MICPanelView(discord.ui.View):
+    """Persistent buttons for the main  setup panel."""
 
     def __init__(self, cog):
         super().__init__(timeout=None)
@@ -412,7 +412,7 @@ class KIWPanelView(discord.ui.View):
     def _find_user_card(self, interaction):
         return next(
             (
-                item for item in kip_cards()
+                item for item in mic_cards()
                 if item.get("guild_id") == str(interaction.guild_id)
                 and item.get("user_id") == str(interaction.user.id)
             ),
@@ -420,12 +420,12 @@ class KIWPanelView(discord.ui.View):
         )
 
     @discord.ui.button(
-        label="Buat KIP",
+        label="Buat MIC",
         emoji="🪪",
         style=discord.ButtonStyle.primary,
-        custom_id="kip:panel:create",
+        custom_id="mic:panel:create",
     )
-    async def create_kip(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def create_mic(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not interaction.guild:
             return await interaction.response.send_message(
                 "Fitur ini hanya dapat digunakan di server.", ephemeral=True
@@ -434,27 +434,27 @@ class KIWPanelView(discord.ui.View):
         existing = self._find_user_card(interaction)
         if existing:
             return await interaction.response.send_message(
-                "⚠️ Kamu sudah memiliki KIP. Gunakan tombol **Melihat KIP** "
+                "⚠️ Kamu sudah memiliki MIC. Gunakan tombol **Melihat MIC** "
                 "untuk melihat kartu atau **Edit** pada kartu untuk memperbaruinya.",
                 ephemeral=True,
             )
 
         try:
-            await interaction.response.send_modal(KIWModal(self.cog, "create"))
+            await interaction.response.send_modal(MICModal(self.cog, "create"))
         except discord.HTTPException as exc:
-            print(f"[KIW] Gagal membuka modal Buat KIW: {exc}")
+            print(f"[MIC] Gagal membuka modal Buat MIC: {exc}")
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    "❌ Form KIW gagal dibuka. Silakan coba lagi.", ephemeral=True
+                    "❌ Form MIC gagal dibuka. Silakan coba lagi.", ephemeral=True
                 )
 
     @discord.ui.button(
-        label="Lihat KIP",
+        label="Lihat MIC",
         emoji="👁️",
         style=discord.ButtonStyle.secondary,
-        custom_id="kip:panel:view",
+        custom_id="mic:panel:view",
     )
-    async def view_kip(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def view_mic(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not interaction.guild:
             return await interaction.response.send_message(
                 "Fitur ini hanya dapat digunakan di server.", ephemeral=True
@@ -463,14 +463,14 @@ class KIWPanelView(discord.ui.View):
         card = self._find_user_card(interaction)
         if not card:
             return await interaction.response.send_message(
-                "ℹ️ Kamu belum memiliki KIP. Silakan tekan **Buat KIP** terlebih dahulu.",
+                "ℹ️ Kamu belum memiliki MIC. Silakan tekan **Buat MIC** terlebih dahulu.",
                 ephemeral=True,
             )
 
         message_id = card.get("message_id")
         if not message_id:
             return await interaction.response.send_message(
-                "⚠️ Data KIP ditemukan, tetapi pesan kartunya tidak tersedia. "
+                "⚠️ Data MIC ditemukan, tetapi pesan kartunya tidak tersedia. "
                 "Silakan hubungi admin untuk memperbaikinya.",
                 ephemeral=True,
             )
@@ -479,7 +479,7 @@ class KIWPanelView(discord.ui.View):
         channel = interaction.guild.get_channel(int(channel_id)) if channel_id else None
         if not isinstance(channel, discord.TextChannel):
             return await interaction.response.send_message(
-                "⚠️ Channel KIP tidak ditemukan. Minta admin menjalankan `/setup-kip` ulang.",
+                "⚠️ Channel MIC tidak ditemukan. Minta admin menjalankan `/setup-mic` ulang.",
                 ephemeral=True,
             )
 
@@ -487,21 +487,21 @@ class KIWPanelView(discord.ui.View):
             message = await channel.fetch_message(int(message_id))
         except discord.NotFound:
             return await interaction.response.send_message(
-                "⚠️ Pesan KIP kamu sudah tidak ditemukan. Minta admin membuat ulang panel KIP.",
+                "⚠️ Pesan MIC kamu sudah tidak ditemukan. Minta admin membuat ulang panel MIC.",
                 ephemeral=True,
             )
         except discord.HTTPException as exc:
-            print(f"[KIP] Gagal mengambil pesan kartu: {exc}")
+            print(f"[MIC] Gagal mengambil pesan kartu: {exc}")
             return await interaction.response.send_message(
-                "❌ Kartu KIP gagal diambil. Silakan coba lagi.", ephemeral=True
+                "❌ Kartu MIC gagal diambil. Silakan coba lagi.", ephemeral=True
             )
 
         await interaction.response.send_message(
-            f"🪪 **KIP kamu:** {message.jump_url}", ephemeral=True
+            f"🪪 **MIC kamu:** {message.jump_url}", ephemeral=True
         )
 
-class KIPCardView(discord.ui.View):
-    """Persistent buttons attached to every generated KIP card."""
+class MICCardView(discord.ui.View):
+    """Persistent buttons attached to every generated MIC card."""
 
     def __init__(self, cog):
         super().__init__(timeout=None)
@@ -510,7 +510,7 @@ class KIPCardView(discord.ui.View):
     async def _get_card(self, interaction):
         return next(
             (
-                item for item in kip_cards()
+                item for item in mic_cards()
                 if item.get("guild_id") == str(interaction.guild_id)
                 and item.get("message_id") == str(interaction.message.id)
             ),
@@ -520,7 +520,7 @@ class KIPCardView(discord.ui.View):
     def _find_user_card(self, interaction):
         return next(
             (
-                item for item in kip_cards()
+                item for item in mic_cards()
                 if item.get("guild_id") == str(interaction.guild_id)
                 and item.get("user_id") == str(interaction.user.id)
             ),
@@ -528,10 +528,10 @@ class KIPCardView(discord.ui.View):
         )
 
     @discord.ui.button(
-        label="Buat KIP",
+        label="Buat MIC",
         emoji="🪪",
         style=discord.ButtonStyle.primary,
-        custom_id="kip:card:create",
+        custom_id="mic:card:create",
     )
     async def create(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not interaction.guild:
@@ -542,30 +542,30 @@ class KIPCardView(discord.ui.View):
         existing = self._find_user_card(interaction)
         if existing:
             return await interaction.response.send_message(
-                "⚠️ Kamu sudah memiliki KIP. Gunakan **Lihat KIP** atau **Edit**.",
+                "⚠️ Kamu sudah memiliki MIC. Gunakan **Lihat MIC** atau **Edit**.",
                 ephemeral=True,
             )
 
         try:
-            await interaction.response.send_modal(KIWModal(self.cog, "create"))
+            await interaction.response.send_modal(MICModal(self.cog, "create"))
         except discord.HTTPException as exc:
-            print(f"[KIP] Gagal membuka modal dari kartu: {exc}")
+            print(f"[MIC] Gagal membuka modal dari kartu: {exc}")
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    "❌ Form KIP gagal dibuka. Silakan coba lagi.", ephemeral=True
+                    "❌ Form MIC gagal dibuka. Silakan coba lagi.", ephemeral=True
                 )
 
     @discord.ui.button(
-        label="Lihat KIP",
+        label="Lihat MIC",
         emoji="👁️",
         style=discord.ButtonStyle.secondary,
-        custom_id="kip:card:view",
+        custom_id="mic:card:view",
     )
     async def view(self, interaction: discord.Interaction, button: discord.ui.Button):
         card = self._find_user_card(interaction)
         if not card:
             return await interaction.response.send_message(
-                "ℹ️ Kamu belum memiliki KIP. Silakan tekan **Buat KIP** terlebih dahulu.",
+                "ℹ️ Kamu belum memiliki MIC. Silakan tekan **Buat MIC** terlebih dahulu.",
                 ephemeral=True,
             )
 
@@ -573,72 +573,72 @@ class KIPCardView(discord.ui.View):
         channel_id = card.get("channel_id")
         if not message_id or not channel_id or not interaction.guild:
             return await interaction.response.send_message(
-                "⚠️ Data pesan KIP tidak lengkap.", ephemeral=True
+                "⚠️ Data pesan MIC tidak lengkap.", ephemeral=True
             )
 
         channel = interaction.guild.get_channel(int(channel_id))
         if not isinstance(channel, discord.TextChannel):
             return await interaction.response.send_message(
-                "⚠️ Channel KIP tidak ditemukan.", ephemeral=True
+                "⚠️ Channel MIC tidak ditemukan.", ephemeral=True
             )
 
         try:
             message = await channel.fetch_message(int(message_id))
         except discord.HTTPException as exc:
-            print(f"[KIP] Gagal mengambil KIP: {exc}")
+            print(f"[MIC] Gagal mengambil MIC: {exc}")
             return await interaction.response.send_message(
-                "❌ KIP gagal diambil. Silakan coba lagi.", ephemeral=True
+                "❌ MIC gagal diambil. Silakan coba lagi.", ephemeral=True
             )
 
         await interaction.response.send_message(
-            f"🪪 **KIP kamu:** {message.jump_url}", ephemeral=True
+            f"🪪 **MIC kamu:** {message.jump_url}", ephemeral=True
         )
 
     @discord.ui.button(
         label="Edit",
         emoji="✏️",
         style=discord.ButtonStyle.secondary,
-        custom_id="kip:card:edit",
+        custom_id="mic:card:edit",
     )
     async def edit(self, interaction: discord.Interaction, button: discord.ui.Button):
         card = await self._get_card(interaction)
         if not card:
             return await interaction.response.send_message(
-                "Data KIP tidak ditemukan.", ephemeral=True
+                "Data MIC tidak ditemukan.", ephemeral=True
             )
         if card.get("user_id") != str(interaction.user.id):
             return await interaction.response.send_message(
-                "Kamu hanya dapat Mengedit KIP Milikmu sendiri.", ephemeral=True
+                "Kamu hanya dapat Mengedit MIC Milikmu sendiri.", ephemeral=True
             )
         try:
-            await interaction.response.send_modal(KIWModal(self.cog, "edit", card))
+            await interaction.response.send_modal(MICModal(self.cog, "edit", card))
         except discord.HTTPException as exc:
-            print(f"[KIP] Gagal membuka modal edit: {exc}")
+            print(f"[MIC] Gagal membuka modal edit: {exc}")
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    "❌ Form Edit KIP gagal dibuka. Silakan coba lagi.", ephemeral=True
+                    "❌ Form Edit MIC gagal dibuka. Silakan coba lagi.", ephemeral=True
                 )
 
     @discord.ui.button(
         label="Hapus",
         emoji="🗑️",
         style=discord.ButtonStyle.danger,
-        custom_id="kip:card:delete",
+        custom_id="mic:card:delete",
     )
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         card = await self._get_card(interaction)
         if not card:
             return await interaction.response.send_message(
-                "Data KIP tidak ditemukan.", ephemeral=True
+                "Data MIC tidak ditemukan.", ephemeral=True
             )
         if card.get("user_id") != str(interaction.user.id):
             return await interaction.response.send_message(
-                "Kamu hanya dapat Menghapus KIP Milikmu sendiri.", ephemeral=True
+                "Kamu hanya dapat Menghapus MIC Milikmu sendiri.", ephemeral=True
             )
 
         await interaction.response.defer(ephemeral=True, thinking=True)
-        data = [item for item in kip_cards() if item.get("id") != card.get("id")]
-        save_kip_cards(data)
+        data = [item for item in mic_cards() if item.get("id") != card.get("id")]
+        save_mic_cards(data)
 
         if interaction.message:
             try:
@@ -651,25 +651,25 @@ class KIPCardView(discord.ui.View):
             thread = interaction.guild.get_thread(int(thread_id))
             if thread:
                 try:
-                    await thread.delete(reason="KIP dihapus oleh pemilik kartu")
+                    await thread.delete(reason="MIC dihapus oleh pemilik kartu")
                 except (discord.NotFound, discord.Forbidden, discord.HTTPException):
                     pass
 
         await interaction.followup.send(
-            "✅ Kartu Identitas Penghuni berhasil dihapus.", ephemeral=True
+            "✅ Kartu Identity Card (MIC) berhasil dihapus.", ephemeral=True
         )
 
-class KIPCog(commands.Cog):
+class MICCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @app_commands.command(
-        name="setup-kip",
-        description="Menyiapkan panel Kartu Identitas Penghuni",
+        name="setup-mic",
+        description="Menyiapkan panel Member Identity Card (MIC)",
     )
     @app_commands.default_permissions(manage_guild=True)
-    @app_commands.describe(channel="Channel untuk panel Kartu Identitas Penghuni")
-    async def setup_kip(self, interaction: discord.Interaction, channel: discord.TextChannel):
+    @app_commands.describe(channel="Channel untuk panel Member Identity Card (MIC)")
+    async def setup_mic(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not interaction.guild:
             return await interaction.response.send_message(
                 "Gunakan perintah ini di dalam server.", ephemeral=True
@@ -681,9 +681,9 @@ class KIPCog(commands.Cog):
 
         panel = discord.Embed(
             description=(
-                "# 🪪 Kartu Identitas Penghuni\nKenali penghuni, bangun kebersamaan, dalam satu identitas.\n\n"
-                "Tekan **Buat KIP** untuk mengisi identitas penghuni home.. "
-                "Setiap penghuni dapat membuat satu kartu, lalu memperbarui atau "
+                "# 🪪 Member Identity Card\nKenali member, bangun kebersamaan, dalam satu identitas.\n\n"
+                "Tekan **Buat MIC** untuk mengisi identitas member home.. "
+                "Setiap member dapat membuat satu kartu, lalu memperbarui atau "
                 "menghapusnya melalui tombol pada kartu masing-masing."
             ),
             color=discord.Color.from_rgb(154, 185, 195),
@@ -691,7 +691,7 @@ class KIPCog(commands.Cog):
         panel.set_image(url=BANNER_URL)
 
         try:
-            posted = await channel.send(embed=panel, view=KIWPanelView(self))
+            posted = await channel.send(embed=panel, view=MICPanelView(self))
         except discord.Forbidden:
             return await interaction.followup.send(
                 "Bot tidak memiliki izin mengirim pesan/embed ke channel tersebut.",
@@ -699,7 +699,7 @@ class KIPCog(commands.Cog):
             )
 
         configs = [
-            item for item in kip_settings()
+            item for item in mic_settings()
             if item.get("guild_id") != str(interaction.guild_id)
         ]
         configs.append({
@@ -707,22 +707,22 @@ class KIPCog(commands.Cog):
             "channel_id": str(channel.id),
             "panel_message_id": str(posted.id),
         })
-        save_kip_settings(configs)
+        save_mic_settings(configs)
 
         await interaction.followup.send(
-            f"✅ Panel KIP berhasil disiapkan di {channel.mention}.\n"
+            f"✅ Panel MIC berhasil disiapkan di {channel.mention}.\n"
             f"[Lihat panel]({posted.jump_url})",
             ephemeral=True,
         )
 
-    async def save_kip(self, interaction: discord.Interaction, values: dict, mode: str):
+    async def save_mic(self, interaction: discord.Interaction, values: dict, mode: str):
         if not interaction.guild:
             return await interaction.response.send_message(
                 "Fitur ini hanya dapat digunakan di server.", ephemeral=True
             )
 
         await interaction.response.defer(ephemeral=True, thinking=True)
-        all_cards = kip_cards()
+        all_cards = mic_cards()
         card = next(
             (item for item in all_cards
              if item.get("guild_id") == str(interaction.guild_id)
@@ -732,27 +732,27 @@ class KIPCog(commands.Cog):
 
         if mode == "create" and card:
             return await interaction.followup.send(
-                "Kamu sudah memiliki KIP. Gunakan tombol Edit.", ephemeral=True
+                "Kamu sudah memiliki MIC. Gunakan tombol Edit.", ephemeral=True
             )
         if mode == "edit" and not card:
             return await interaction.followup.send(
-                "KIP kamu belum ditemukan. Buat kartu baru melalui panel.", ephemeral=True
+                "MIC kamu belum ditemukan. Buat kartu baru melalui panel.", ephemeral=True
             )
 
         cfg = next(
-            (item for item in kip_settings()
+            (item for item in mic_settings()
              if item.get("guild_id") == str(interaction.guild_id)),
             None,
         )
         if not cfg:
             return await interaction.followup.send(
-                "Panel KIP belum disiapkan administrator dengan `/setup-kip`.",
+                "Panel MIC belum disiapkan administrator dengan `/setup-mic`.",
                 ephemeral=True,
             )
         channel = interaction.guild.get_channel(int(cfg["channel_id"]))
         if not isinstance(channel, discord.TextChannel):
             return await interaction.followup.send(
-                "Channel KIP tidak ditemukan. Minta tolong Admin menjalankan setup ulang.",
+                "Channel MIC tidak ditemukan. Minta tolong Admin menjalankan setup ulang.",
                 ephemeral=True,
             )
 
@@ -767,12 +767,12 @@ class KIPCog(commands.Cog):
                 "guild_id": str(interaction.guild_id),
                 "user_id": str(interaction.user.id),
                 "number": next_number,
-                "card_number": f"KIP-{next_number:05d}",
+                "card_number": f"MIC-{next_number:05d}",
                 "message_id": None,
                 "thread_id": None,
                 "channel_id": str(channel.id),
                 "joined_at": format_date_id(getattr(interaction.user, "joined_at", None) or discord.utils.utcnow()),
-                "status": "Penghuni Aktif",
+                "status": "Member Aktif",
                 "privacy": "Publik",
             }
 
@@ -793,10 +793,10 @@ class KIPCog(commands.Cog):
             fresh_user = interaction.user
             try:
                 fresh_user = await self.bot.fetch_user(interaction.user.id)
-                print("[KIW] Data profil Discord berhasil diperbarui.")
+                print("[MIC] Data profil Discord berhasil diperbarui.")
             except Exception as fetch_error:
                 print(
-                    f"[KIW] Gagal mengambil profil terbaru: "
+                    f"[MIC] Gagal mengambil profil terbaru: "
                     f"{type(fetch_error).__name__}: {fetch_error}"
                 )
 
@@ -827,7 +827,7 @@ class KIPCog(commands.Cog):
                         )
                 except Exception as member_error:
                     print(
-                        f"[KIW] Gagal mengambil profil server terbaru: "
+                        f"[MIC] Gagal mengambil profil server terbaru: "
                         f"{type(member_error).__name__}: {member_error}"
                     )
 
@@ -903,13 +903,13 @@ class KIPCog(commands.Cog):
                             avatar_bytes = await variant.read()
                             if avatar_bytes:
                                 print(
-                                    f"[KIP] Avatar berhasil diambil: {avatar_label}"
+                                    f"[MIC] Avatar berhasil diambil: {avatar_label}"
                                     + (f" | {asset_url}" if asset_url else "")
                                 )
                                 break
                         except Exception as avatar_error:
                             print(
-                                f"[KIP] Gagal mengambil {avatar_label}"
+                                f"[MIC] Gagal mengambil {avatar_label}"
                                 + (f" | {getattr(variant, 'url', 'URL tidak tersedia')}")
                                 + f": {type(avatar_error).__name__}: {avatar_error}"
                             )
@@ -936,34 +936,34 @@ class KIPCog(commands.Cog):
                                                 if payload:
                                                     avatar_bytes = payload
                                                     print(
-                                                        f"[KIP] Avatar berhasil diambil via CDN langsung: {direct_url}"
+                                                        f"[MIC] Avatar berhasil diambil via CDN langsung: {direct_url}"
                                                     )
                                                     break
                                             else:
                                                 print(
-                                                    f"[KIP] CDN avatar HTTP {response.status}: {direct_url}"
+                                                    f"[MIC] CDN avatar HTTP {response.status}: {direct_url}"
                                                 )
                                     except Exception as direct_error:
                                         print(
-                                            f"[KIP] Gagal CDN langsung: {type(direct_error).__name__}: {direct_error}"
+                                            f"[MIC] Gagal CDN langsung: {type(direct_error).__name__}: {direct_error}"
                                         )
                                     if avatar_bytes:
                                         break
                 except Exception as avatar_error:
                     print(
-                        f"[KIP] Gagal memproses kandidat {avatar_label}: "
+                        f"[MIC] Gagal memproses kandidat {avatar_label}: "
                         f"{type(avatar_error).__name__}: {avatar_error}"
                     )
 
             if avatar_bytes is None:
                 print(
-                    "[KIP] Semua sumber avatar Discord gagal. "
+                    "[MIC] Semua sumber avatar Discord gagal. "
                     "Renderer menggunakan fallback. Avatar Discord tetap dipasang "
                     "sebagai thumbnail embed bila URL masih dapat diakses."
                 )
 
             image_buffer = await asyncio.to_thread(
-                render_kip, card, avatar_bytes
+                render_mic, card, avatar_bytes
             )
         except ImportError:
             return await interaction.followup.send(
@@ -972,32 +972,32 @@ class KIPCog(commands.Cog):
             )
         except Exception as exc:
             return await interaction.followup.send(
-                f"Gagal membuat gambar KIW: `{type(exc).__name__}: {exc}`",
+                f"Gagal membuat gambar MIC: `{type(exc).__name__}: {exc}`",
                 ephemeral=True,
             )
 
-        file = discord.File(image_buffer, filename="kiw.png")
+        file = discord.File(image_buffer, filename="mic.png")
         embed = discord.Embed(
-            description=f"🪪 **Kartu Identitas Penghuni** {interaction.user.mention}",
+            description=f"🪪 **Member Identity Card** {interaction.user.mention}",
             color=discord.Color.from_rgb(154, 185, 195),
         )
-        embed.set_image(url="attachment://kiw.png")
+        embed.set_image(url="attachment://mic.png")
 
         try:
             if card.get("message_id"):
                 try:
                     message = await channel.fetch_message(int(card["message_id"]))
-                    await message.edit(embed=embed, attachments=[file], view=KIPCardView(self))
+                    await message.edit(embed=embed, attachments=[file], view=MICCardView(self))
                 except discord.NotFound:
                     card["message_id"] = None
 
             if not card.get("message_id"):
-                message = await channel.send(embed=embed, file=file, view=KIPCardView(self))
+                message = await channel.send(embed=embed, file=file, view=MICCardView(self))
                 card["message_id"] = str(message.id)
                 thread = await message.create_thread(
-                    name=KIP_THREAD_NAME,
+                    name=MIC_THREAD_NAME,
                     auto_archive_duration=1440,
-                    reason="Kolom komentar Kartu Identitas Penghuni",
+                    reason="Kolom komentar Member Identity Card (MIC)",
                 )
                 card["thread_id"] = str(thread.id)
         except discord.Forbidden:
@@ -1014,16 +1014,16 @@ class KIPCog(commands.Cog):
 
         if not any(item.get("id") == card["id"] for item in all_cards):
             all_cards.append(card)
-        save_kip_cards(all_cards)
+        save_mic_cards(all_cards)
         await interaction.followup.send(
-            ("✅ KIP berhasil dibuat." if mode == "create" else "✅ KIP berhasil diperbarui.")
+            ("✅ MIC berhasil dibuat." if mode == "create" else "✅ MIC berhasil diperbarui.")
             + f"\n🪪 Nomor: **{card['card_number']}**\n"
             + f"📨 [Lihat kartu]({message.jump_url})",
             ephemeral=True,
         )
 
 async def setup(bot: commands.Bot):
-    cog = KIPCog(bot)
-    bot.add_view(KIWPanelView(cog))
-    bot.add_view(KIPCardView(cog))
+    cog = MICCog(bot)
+    bot.add_view(MICPanelView(cog))
+    bot.add_view(MICCardView(cog))
     await bot.add_cog(cog)

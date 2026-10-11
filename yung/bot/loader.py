@@ -9,8 +9,8 @@ async def load_extensions(bot):
         "bot.commands.automasi.feedback.feedback",
         "bot.commands.automasi.feed.feed",
         "bot.commands.automasi.ticket.ticket",
-        "bot.commands.automasi.kip.kip",
-        "bot.commands.automasi.mutualan.mutualan",
+        "bot.commands.automasi.mic.mic",
+        "bot.commands.automasi.moots.moots",
     ]
 
     for name in extensions:

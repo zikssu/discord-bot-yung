@@ -5,14 +5,14 @@ from bot.store import read, write
 from bot.commands.automasi.common import BANNER_URL, DEFAULT
 import asyncio
 
-def saran():
-    return read("saran.json", [], feature="feedback")
+def feedback():
+    return read("feedback.json", [], feature="feedback")
 
-def quote_saran_description(title: str, value: str) -> str:
+def quote_feedback_description(title: str, value: str) -> str:
     quoted_value = "\n".join(f"> {line}" for line in value.splitlines())
     return f"# {title}\n\n{quoted_value}\n\n"
 
-def saran_author_id(embed: discord.Embed) -> str | None:
+def feedback_author_id(embed: discord.Embed) -> str | None:
     for field in embed.fields:
         if field.name.startswith("👤 Pengirim:"):
             mention = field.value.strip()
@@ -20,7 +20,7 @@ def saran_author_id(embed: discord.Embed) -> str | None:
                 return mention[2:-1].removeprefix("!")
     return None
 
-class SaranModal(discord.ui.Modal):
+class FeedbackModal(discord.ui.Modal):
     isi = discord.ui.TextInput(
         label="Ketik Pesanmu dibawah.",
         style=discord.TextStyle.paragraph,
@@ -38,13 +38,13 @@ class SaranModal(discord.ui.Modal):
 
         if not value:
             return await i.response.send_message(
-                "❌ Kritik atau Saran tidak boleh kosong.",
+                "❌ Deskripsi tidak boleh kosong.",
                 ephemeral=True
             )
 
         cfg = next(
             (
-                x for x in saran()
+                x for x in feedback()
                 if x.get("guildId") == str(i.guild_id)
             ),
             None
@@ -52,7 +52,7 @@ class SaranModal(discord.ui.Modal):
 
         if not cfg:
             return await i.response.send_message(
-                "❌ Kotak Saran belum diatur oleh staf.",
+                "❌ Feedback Box belum diatur oleh staf.",
                 ephemeral=True
             )
 
@@ -66,7 +66,7 @@ class SaranModal(discord.ui.Modal):
 
         if not isinstance(ch, discord.TextChannel):
             return await i.response.send_message(
-                "❌ Channel Kotak Saran tidak ditemukan.",
+                "❌ Channel Kotak Feedback tidak ditemukan.",
                 ephemeral=True
             )
 
@@ -79,7 +79,7 @@ class SaranModal(discord.ui.Modal):
 
         # Isi masukan berada di deskripsi, sebelum field Pengirim dan Tipe.
         e = discord.Embed(
-            description=quote_saran_description(
+            description=quote_feedback_description(
                 f"{emoji_tipe} {self.jenis} Baru!",
                 value,
             ),
@@ -87,12 +87,12 @@ class SaranModal(discord.ui.Modal):
             timestamp=discord.utils.utcnow()
         )
         e.add_field(
-            name="👤 Pengirim:",
+            name="👤 Pengirim: ",
             value=i.user.mention,
             inline=True
         )
         e.add_field(
-            name="🏷️ Tipe:",
+            name="🏷️ Tipe: ",
             value=f"{emoji_tipe} {self.jenis}",
             inline=True
         )
@@ -113,7 +113,7 @@ class SaranModal(discord.ui.Modal):
         # Kiriman masukan menyediakan tombol untuk Saran, Kritik, dan Rating.
         post = await ch.send(
             embed=e,
-            view=SaranView()
+            view=FeedbackView()
         )
 
         # Buat kolom komentar
@@ -184,14 +184,14 @@ class RatingModal(discord.ui.Modal):
 
         cfg = next(
             (
-                x for x in saran()
+                x for x in feedback()
                 if x.get("guildId") == str(i.guild_id)
             ),
             None,
         )
         if not cfg:
             return await i.response.send_message(
-                "❌ Kotak Saran belum diatur oleh staf.",
+                "❌ Kotak Feedback belum diatur oleh staf.",
                 ephemeral=True,
             )
 
@@ -204,22 +204,22 @@ class RatingModal(discord.ui.Modal):
         ch = i.guild.get_channel(int(cfg["channelId"]))
         if not isinstance(ch, discord.TextChannel):
             return await i.response.send_message(
-                "❌ Channel Kotak Saran tidak ditemukan.",
+                "❌ Channel Feedback Box tidak ditemukan.",
                 ephemeral=True,
             )
 
         stars = "⭐" * int(rating_value)
         embed = discord.Embed(
-            description=quote_saran_description(
+            description=quote_feedback_description(
                 "⭐ Rating Baru!",
                 alasan_value,
             ),
             color=0xffffff,
             timestamp=discord.utils.utcnow(),
         )
-        embed.add_field(name="👤 Pengirim:", value=i.user.mention, inline=True)
+        embed.add_field(name="👤 Pengirim: ", value=i.user.mention, inline=True)
         embed.add_field(
-            name="⭐ Rating:",
+            name="⭐ Rating: ",
             value=f"{stars} ({rating_value}/5)",
             inline=True,
         )
@@ -233,7 +233,7 @@ class RatingModal(discord.ui.Modal):
         embed.set_thumbnail(url=i.user.display_avatar.url)
         embed.set_image(url=BANNER_URL)
 
-        post = await ch.send(embed=embed, view=SaranView())
+        post = await ch.send(embed=embed, view=FeedbackView())
         thread = await post.create_thread(
             name=DEFAULT,
             auto_archive_duration=1440,
@@ -253,12 +253,12 @@ class RatingModal(discord.ui.Modal):
             ephemeral=True,
         )
 
-class SaranEditModal(discord.ui.Modal):
+class FeedbackEditModal(discord.ui.Modal):
     def __init__(self, message: discord.Message, embed: discord.Embed):
         self.message = message
         self.original_embed = embed
         self.is_rating = any(
-            field.name.startswith("⭐ Rating:")
+            field.name.startswith("⭐ Rating: ")
             for field in embed.fields
         )
         description = embed.description or ""
@@ -293,7 +293,7 @@ class SaranEditModal(discord.ui.Modal):
         if self.is_rating:
             rating_field = next(
                 field for field in embed.fields
-                if field.name.startswith("⭐ Rating:")
+                if field.name.startswith("⭐ Rating: ")
             )
             rating_value = next(
                 (
@@ -312,7 +312,7 @@ class SaranEditModal(discord.ui.Modal):
         self.add_item(self.description_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        if saran_author_id(self.original_embed) != str(interaction.user.id):
+        if feedback_author_id(self.original_embed) != str(interaction.user.id):
             return await interaction.response.send_message(
                 "Kamu hanya dapat mengedit masukan milikmu sendiri.",
                 ephemeral=True,
@@ -327,7 +327,7 @@ class SaranEditModal(discord.ui.Modal):
 
         new_embed = self.original_embed.copy()
         title = (self.original_embed.description or "").split("\n", maxsplit=1)[0]
-        new_embed.description = quote_saran_description(
+        new_embed.description = quote_feedback_description(
             title.removeprefix("# "),
             value,
         )
@@ -351,11 +351,11 @@ class SaranEditModal(discord.ui.Modal):
             stars = "⭐" * int(rating_value)
             rating_field = next(
                 index for index, field in enumerate(new_embed.fields)
-                if field.name.startswith("⭐ Rating:")
+                if field.name.startswith("⭐ Rating: ")
             )
             new_embed.set_field_at(
                 rating_field,
-                name="⭐ Rating:",
+                name="⭐ Rating: ",
                 value=f"{stars} ({rating_value}/5)",
                 inline=True,
             )
@@ -374,7 +374,7 @@ class SaranEditModal(discord.ui.Modal):
             ephemeral=True,
         )
 
-class SaranView(discord.ui.View):
+class FeedbackView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
@@ -390,7 +390,7 @@ class SaranView(discord.ui.View):
         button: discord.ui.Button
     ):
         await i.response.send_modal(
-            SaranModal("Saran")
+            FeedbackModal("Saran")
         )
 
     @discord.ui.button(
@@ -405,7 +405,7 @@ class SaranView(discord.ui.View):
         button: discord.ui.Button
     ):
         await i.response.send_modal(
-            SaranModal("Kritik")
+            FeedbackModal("Kritik")
         )
 
     @discord.ui.button(
@@ -435,19 +435,19 @@ class SaranView(discord.ui.View):
     ):
         message = interaction.message
         embed = message.embeds[0] if message and message.embeds else None
-        if not message or not embed or not saran_author_id(embed):
+        if not message or not embed or not feedback_author_id(embed):
             return await interaction.response.send_message(
                 "Informasi pemilik masukan tidak ditemukan.",
                 ephemeral=True,
             )
-        if saran_author_id(embed) != str(interaction.user.id):
+        if feedback_author_id(embed) != str(interaction.user.id):
             return await interaction.response.send_message(
                 "Kamu hanya dapat mengedit masukan milikmu sendiri.",
                 ephemeral=True,
             )
-        await interaction.response.send_modal(SaranEditModal(message, embed))
+        await interaction.response.send_modal(FeedbackEditModal(message, embed))
 
-class SaranPanelView(discord.ui.View):
+class FeedbackPanelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
@@ -462,7 +462,7 @@ class SaranPanelView(discord.ui.View):
         i: discord.Interaction,
         button: discord.ui.Button,
     ):
-        await i.response.send_modal(SaranModal("Saran"))
+        await i.response.send_modal(FeedbackModal("Saran"))
 
     @discord.ui.button(
         label="Kirim Kritik",
@@ -475,7 +475,7 @@ class SaranPanelView(discord.ui.View):
         i: discord.Interaction,
         button: discord.ui.Button,
     ):
-        await i.response.send_modal(SaranModal("Kritik"))
+        await i.response.send_modal(FeedbackModal("Kritik"))
 
     @discord.ui.button(
         label="Kirim Rating",
@@ -493,7 +493,7 @@ class SaranPanelView(discord.ui.View):
 class FeedbackCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self._saran_setup_lock = asyncio.Lock()
+        self._feedback_setup_lock = asyncio.Lock()
 
     @app_commands.command(
         name="setup-feedback",
@@ -529,8 +529,8 @@ class FeedbackCog(commands.Cog):
 
         e.set_image(url=BANNER_URL)
 
-        async with self._saran_setup_lock:
-            configs = saran()
+        async with self._feedback_setup_lock:
+            configs = feedback()
             previous_config = next(
                 (
                     item for item in configs
@@ -555,7 +555,7 @@ class FeedbackCog(commands.Cog):
                     except discord.NotFound:
                         posted = None
                     except discord.HTTPException as exc:
-                        print(f"[Saran] Gagal mengambil panel sebelumnya: {exc}")
+                        print(f"[Feedback] Gagal mengambil panel sebelumnya: {exc}")
                         return await i.followup.send(
                             "❌ Panel sebelumnya tidak dapat diperiksa. "
                             "Tidak ada panel baru yang dikirim.",
@@ -577,7 +577,7 @@ class FeedbackCog(commands.Cog):
                         ):
                             matching_panels.append(message)
                 except discord.HTTPException as exc:
-                    print(f"[Saran] Gagal memeriksa panel sebelumnya: {exc}")
+                    print(f"[Feedback] Gagal memeriksa panel sebelumnya: {exc}")
                     return await i.followup.send(
                         "❌ Riwayat channel tidak dapat diperiksa. "
                         "Tidak ada panel baru yang dikirim.",
@@ -589,11 +589,11 @@ class FeedbackCog(commands.Cog):
 
             try:
                 if posted:
-                    await posted.edit(embed=e, view=SaranPanelView())
+                    await posted.edit(embed=e, view=FeedbackPanelView())
                 else:
-                    posted = await channel.send(embed=e, view=SaranPanelView())
+                    posted = await channel.send(embed=e, view=FeedbackPanelView())
             except discord.HTTPException as exc:
-                print(f"[Saran] Gagal menyimpan panel: {exc}")
+                print(f"[Feedback] Gagal menyimpan panel: {exc}")
                 return await i.followup.send(
                     "❌ Panel Feedback Box gagal dibuat atau diperbarui.",
                     ephemeral=True,
@@ -610,7 +610,7 @@ class FeedbackCog(commands.Cog):
                 except discord.HTTPException as exc:
                     cleanup_failed = True
                     print(
-                        f"[Saran] Gagal menghapus panel duplikat "
+                        f"[Feedback] Gagal menghapus panel duplikat "
                         f"{duplicate.id}: {exc}"
                     )
 
@@ -623,7 +623,7 @@ class FeedbackCog(commands.Cog):
                 "channelId": str(channel.id),
                 "panelMessageId": str(posted.id),
             })
-            write("saran.json", data, feature="feedback")
+            write("feedback.json", data, feature="feedback")
 
         result = (
             "✅ **Feedback Box berhasil diperbarui!**"
@@ -643,6 +643,6 @@ class FeedbackCog(commands.Cog):
 
 async def setup(bot: commands.Bot):
     cog = FeedbackCog(bot)
-    bot.add_view(SaranView())
-    bot.add_view(SaranPanelView())
+    bot.add_view(FeedbackView())
+    bot.add_view(FeedbackPanelView())
     await bot.add_cog(cog)

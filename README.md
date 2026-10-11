@@ -56,6 +56,7 @@ Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini s
 - `/buat-postingan` — memfasilitasi anggota untuk membuat postingan komunitas.
 - Mendukung kategori seperti `Berita & Informasi` dan `Umum`.
 - Dukungan media URL multi-link, upload gambar, reaksi like/dislike, serta komentar di thread.
+- Tombol Like/Dislike menggunakan aset ikon di `yung/assets/feed/`; bot memerlukan izin `Manage Emojis and Stickers` dan slot emoji server yang tersedia.
 
 ### 5. Ticket System
 - `/setup-ticket` — menyiapkan panel tiket dan konfigurasi channel log.
@@ -68,10 +69,11 @@ Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini s
 - KIP dibuat dalam format gambar PNG berbasis PIL/Pillow dan disimpan ke channel tertentu.
 - Setiap anggota hanya dapat memiliki satu KIP per server.
 
-### 7. Mutualan Media Sosial
-- `/setup-mutual-medsos` — menyiapkan panel mutualan media sosial.
+### 7. Moots
+- `/setup-moots` — menyiapkan panel Moots.
 - Anggota dapat mengunggah link Instagram, TikTok, Facebook, X, dan WhatsApp Channel.
 - Profil ditampilkan dengan tombol tautan dan dapat diedit atau dihapus oleh pemiliknya.
+- Bot memerlukan izin `Manage Emojis and Stickers` dan slot emoji server yang tersedia untuk membuat ikon tombol dari aset logo.
 
 ---
 
@@ -90,7 +92,7 @@ Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini s
 | `/setup-feed` | Administrasi | Menyiapkan panel Home Feed dan channel log | `Manage Server` |
 | `/buat-postingan` | Home Feed | Membuat postingan feed | Semua pengguna |
 | `/setup-kip` | Administrasi | Menyiapkan panel KIP | `Manage Server` |
-| `/setup-mutual-medsos` | Administrasi | Menyiapkan panel mutualan media sosial | `Manage Channels` |
+| `/setup-moots` | Administrasi | Menyiapkan panel Moots | `Manage Channels` |
 
 > Beberapa command menambahkan modal, select menu, dan button UI. Bot juga memerlukan permission yang sesuai untuk mengirim embed, membuat thread, mengelola pesan, dan memproses attachment.
 
@@ -136,11 +138,18 @@ Nama bot yang dipakai di dalam code dan UI adalah `Homi`, namun repository ini s
 │               ├── kip/
 │               │   ├── kip.py
 │               │   └── data/
-│               └── mutualan/
-│                   ├── mutualan.py
+│               └── moots/
+│                   ├── moots.py
 │                   └── data/
-└── yung/assets/fonts/
-    └── font files for KIP rendering
+└── yung/assets/
+    ├── fonts/
+    │   └── font files for KIP rendering
+    └── moots/
+        ├── Instagram.png
+        ├── tiktok.png
+        ├── facebook.png
+        ├── x.png
+        └── whatsapp.png
 ```
 
 Penjelasan singkat:
@@ -250,7 +259,7 @@ Bot ini menggunakan penyimpanan lokal berbasis file JSON, bukan database ekstern
 - `yung/bot/commands/automasi/feed/data/feed_posts.json`
 - `yung/bot/commands/automasi/feedback/data/saran.json`
 - `yung/bot/commands/automasi/kip/data/kip.json`
-- `yung/bot/commands/automasi/mutualan/data/mutual_medsos.json`
+- `yung/bot/commands/automasi/moots/data/moots.json`
 - `yung/bot/commands/automasi/ticket/data/tickets.json`
 
 Karena data tersimpan secara lokal, backup reguler sangat disarankan jika server digunakan dalam skala produksi.

@@ -1,1 +1,96 @@
-[]
+[
+  {
+    "id": "ce878f1291",
+    "guild_id": "1556884240560562196",
+    "channel_id": "1556887747707404319",
+    "message_id": "1558688526009368608",
+    "thread_id": "1558688526009368608",
+    "thread_url": "https://discord.com/channels/1556884240560562196/1558688526009368608",
+    "author_id": "1504756104406634567",
+    "author_name": "ziks",
+    "author_avatar": "https://cdn.discordapp.com/avatars/1504756104406634567/5314701886a212c9475811e53cdea43f.png?size=1024",
+    "title": "Fufufafa",
+    "caption": "Fufufafa",
+    "category": "Pendidikan",
+    "emoji": "📚",
+    "media_urls": [],
+    "media_url": null,
+    "media_type": null,
+    "link_platform": null,
+    "created_at": "2026-10-11T03:51:43.356940+00:00",
+    "likes": [],
+    "dislikes": []
+  },
+  {
+    "id": "b59da9d501",
+    "guild_id": "1556884240560562196",
+    "channel_id": "1556887747707404319",
+    "message_id": "1558690187725250613",
+    "thread_id": "1558690187725250613",
+    "thread_url": "https://discord.com/channels/1556884240560562196/1558690187725250613",
+    "author_id": "1504756104406634567",
+    "author_name": "ziks",
+    "author_avatar": "https://cdn.discordapp.com/avatars/1504756104406634567/5314701886a212c9475811e53cdea43f.png?size=1024",
+    "title": "Fufufafa",
+    "caption": "Fufufafa",
+    "category": "Umum",
+    "emoji": "🌐",
+    "media_urls": [],
+    "media_url": null,
+    "media_type": null,
+    "link_platform": null,
+    "created_at": "2026-10-11T03:58:19.648714+00:00",
+    "likes": [],
+    "dislikes": [
+      "1504756104406634567"
+    ]
+  },
+  {
+    "id": "34a78898d8",
+    "guild_id": "1556884240560562196",
+    "channel_id": "1556887747707404319",
+    "message_id": "1558691856953638964",
+    "thread_id": "1558691856953638964",
+    "thread_url": "https://discord.com/channels/1556884240560562196/1558691856953638964",
+    "author_id": "1504756104406634567",
+    "author_name": "ziks",
+    "author_avatar": "https://cdn.discordapp.com/avatars/1504756104406634567/5314701886a212c9475811e53cdea43f.png?size=1024",
+    "title": "Fufufafa",
+    "caption": "Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa",
+    "category": "Berita & Informasi",
+    "emoji": "📰",
+    "media_urls": [],
+    "media_url": null,
+    "media_type": null,
+    "link_platform": null,
+    "created_at": "2026-10-11T04:04:57.507260+00:00",
+    "likes": [
+      "1504756104406634567"
+    ],
+    "dislikes": []
+  },
+  {
+    "id": "4d6482f497",
+    "guild_id": "1556884240560562196",
+    "channel_id": "1556887747707404319",
+    "message_id": "1558692320080040071",
+    "thread_id": "1558692320080040071",
+    "thread_url": "https://discord.com/channels/1556884240560562196/1558692320080040071",
+    "author_id": "1504756104406634567",
+    "author_name": "ziks",
+    "author_avatar": "https://cdn.discordapp.com/avatars/1504756104406634567/5314701886a212c9475811e53cdea43f.png?size=1024",
+    "title": "Fufufafa",
+    "caption": "Fufufafa Fufufafa Fufufafa Fufufafa Fufufafa",
+    "category": "Umum",
+    "emoji": "🌐",
+    "media_urls": [],
+    "media_url": null,
+    "media_type": null,
+    "link_platform": null,
+    "created_at": "2026-10-11T04:06:47.951860+00:00",
+    "likes": [],
+    "dislikes": [
+      "1504756104406634567"
+    ]
+  }
+]

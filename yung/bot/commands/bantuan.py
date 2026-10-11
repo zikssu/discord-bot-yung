@@ -12,7 +12,7 @@ class HelpSelect(discord.ui.Select):
             options=[
                 discord.SelectOption(
                     label="Beranda",
-                    description="Pengenalan Homi dan cara menggunakan bantuan.",
+                    description="Pengenalan yung dan cara menggunakan bantuan.",
                     value="utama",
                     emoji="🏠"
                 ),
@@ -49,9 +49,9 @@ def make_embed(category):
 
     if category == "utama":
         e.description = (
-            "# Halo! Saya Homi.\n"
+            "# H!! Kenalin gue yung.\n"
             "-# Prefix `/` | Mention <@1553311149850628156>\n\n"
-            "Saya adalah **bot serbaguna (All in One Bot)** "
+            "Gue adalah seorang **All in One Bot** "
             "untuk membantu mengelola, merawat, dan mengembangkan "
             "komunitas **home.**. 🏡\n\n"
             "> Pilih kategori dari menu di bawah untuk melihat command."
@@ -63,7 +63,7 @@ def make_embed(category):
             "Command umum yang dapat digunakan semua anggota.\n\n"
             "- `/infoserver` — Lihat nama, pemilik, jumlah anggota, dan tanggal pembuatan server.\n"
             "- `/infouser` — Lihat profil kamu; isi opsi `pengguna` untuk melihat pengguna lain.\n"
-            "- `/ping` — Periksa latensi koneksi bot Homi."
+            "- `/ping` — Periksa latensi koneksi bot yung."
         )
 
     elif category == "administrasi":
@@ -73,8 +73,8 @@ def make_embed(category):
         ]
         other_commands = [
             ("/setup-feed", "Siapkan panel Home Feed dan channel log. — Manage Server"),
-            ("/setup-kip", "Kirim panel Kartu Identitas Penghuni. — Manage Server"),
-            ("/setup-mutual-medsos", "Kirim panel Mutualan Media Sosial. — Manage Channels"),
+            ("/setup-mic", "Kirim panel Kartu Identitas Penghuni. — Manage Server"),
+            ("/setup-moots", "Kirim panel Moots. — Manage Channels"),
             ("/setup-feedback", "Kirim panel Feedback Box. — Manage Channels"),
             ("/setup-ticket", "Siapkan panel ticket dan channel log ticket. — Manage Channels"),
         ]
@@ -109,9 +109,9 @@ def make_embed(category):
 
     else:
         e.description = (
-            "# Halo! Saya Homi.\n"
+            "# Hi! Kenalin gue yung.\n"
             "-# Prefix `/` | Mention <@1553311149850628156>\n\n"
-            "Saya adalah **bot serbaguna (All in One Bot)** "
+            "Gue adalah seorang **All in One Bot** "
             "untuk membantu mengelola, merawat, dan mengembangkan "
             "komunitas **home.**. 🏡\n\n"
             "> Pilih kategori dari menu di bawah untuk melihat command."
