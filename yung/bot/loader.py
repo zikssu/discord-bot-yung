@@ -11,6 +11,7 @@ async def load_extensions(bot):
         "bot.commands.automasi.ticket.ticket",
         "bot.commands.automasi.mic.mic",
         "bot.commands.automasi.moots.moots",
+        "bot.commands.automasi.ai_chat.ai-chat",
     ]
 
     for name in extensions:

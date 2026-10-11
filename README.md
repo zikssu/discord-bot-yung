@@ -45,6 +45,7 @@ Nama bot yang dipakai di dalam code dan UI adalah `yung`. Entry point aplikasi b
 ### 2. Automasi Channel
 - `/autothread` — menambahkan, menghapus, atau melihat daftar auto-thread di channel tertentu.
 - `/auto-reminder` — membuat pengingat berulang otomatis di channel atau thread tertentu dengan interval menit dan opsi mention role.
+- `/setup-ai-chat` — memilih channel khusus untuk percakapan otomatis dengan Gemini.
 
 ### 3. Feedback & Komunikasi
 - `/setup-feedback` — menyiapkan panel feedback box untuk server.
@@ -90,6 +91,7 @@ Nama bot yang dipakai di dalam code dan UI adalah `yung`. Entry point aplikasi b
 | `/infouser` | Utilitas | Menampilkan profil pengguna Discord | Semua pengguna |
 | `/autothread` | Automasi | Menambah, menghapus, atau melihat Auto Thread | `Manage Channels` |
 | `/auto-reminder` | Automasi | Mengatur reminder berulang | `Manage Channels` |
+| `/setup-ai-chat` | Automasi | Mengatur channel percakapan AI Gemini | `Manage Channels` |
 | `/setup-feedback` | Administrasi | Menyiapkan panel feedback box | `Manage Channels` |
 | `/setup-ticket` | Administrasi | Menyiapkan panel ticket | `Manage Channels` |
 | `/setup-feed` | Administrasi | Menyiapkan panel Home Feed dan channel log | `Manage Server` |
@@ -153,8 +155,11 @@ Nama bot yang dipakai di dalam code dan UI adalah `yung`. Entry point aplikasi b
 │               ├── mic/
 │               │   ├── mic.py
 │               │   └── data/
-│               └── moots/
-│                   ├── moots.py
+│               ├── moots/
+│               │   ├── moots.py
+│               │   └── data/
+│               └── ai_chat/
+│                   ├── ai-chat.py
 │                   └── data/
 ```
 
@@ -172,6 +177,7 @@ Penjelasan singkat:
 - `discord.py` — library utama untuk Discord API dan command framework
 - `python-dotenv` — membaca variabel environment dari `.env`
 - `Pillow` — merender gambar MIC dan mengolah aset emoji untuk Feed dan Moots
+- `google-genai` — menghubungkan AI Chat ke Gemini Interactions API
 
 Versi utama proyek saat ini: 
 
@@ -214,12 +220,14 @@ Buat file `.env` di root project dengan isi berikut:
 ```env
 DISCORD_TOKEN=TOKEN_BOT_DISCORD_KAMU
 DISCORD_GUILD_ID=ID_SERVER_DISCORD_OPTIONAL
+GEMINI_API_KEY=API_KEY_GEMINI_KAMU
 ```
 
 ### Penjelasan variabel
 
 - `DISCORD_TOKEN` — token bot Discord dari developer portal.
 - `DISCORD_GUILD_ID` — ID server target untuk sync command ke guild spesifik. Jika tidak diisi, bot akan melakukan sync global.
+- `GEMINI_API_KEY` — API key Gemini yang digunakan oleh fitur AI Chat.
 
 > Penting: bot harus diundang ke server dengan permission yang sesuai serta scope `bot` dan `applications.commands`.
 
@@ -270,6 +278,7 @@ Bot ini menggunakan penyimpanan lokal berbasis file JSON, bukan database ekstern
 - `yung/bot/commands/automasi/mic/data/mic_settings.json`
 - `yung/bot/commands/automasi/moots/data/moots_settings.json`
 - `yung/bot/commands/automasi/moots/data/moots.json`
+- `yung/bot/commands/automasi/ai_chat/data/ai_chat_settings.json`
 - `yung/bot/commands/automasi/ticket/data/tickets.json`
 
 Karena data tersimpan secara lokal, backup reguler sangat disarankan jika server digunakan dalam skala produksi.
