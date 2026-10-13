@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from bot.owner import OwnerOnlyView
 from bot.store import read, write
 from bot.commands.automasi.common import BANNER_URL
 from datetime import datetime
@@ -402,7 +403,7 @@ class MICModal(discord.ui.Modal):
 
         await self.cog.save_mic(interaction, values, self.mode)
 
-class MICPanelView(discord.ui.View):
+class MICPanelView(OwnerOnlyView):
     """Persistent buttons for the main  setup panel."""
 
     def __init__(self, cog):
@@ -500,7 +501,7 @@ class MICPanelView(discord.ui.View):
             f"🪪 **MIC kamu:** {message.jump_url}", ephemeral=True
         )
 
-class MICCardView(discord.ui.View):
+class MICCardView(OwnerOnlyView):
     """Persistent buttons attached to every generated MIC card."""
 
     def __init__(self, cog):

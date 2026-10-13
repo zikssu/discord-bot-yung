@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from bot.owner import OwnerOnlyView
 from bot.store import read, write
 from bot.commands.automasi.common import BANNER_URL, DEFAULT
 import asyncio
@@ -374,7 +375,7 @@ class FeedbackEditModal(discord.ui.Modal):
             ephemeral=True,
         )
 
-class FeedbackView(discord.ui.View):
+class FeedbackView(OwnerOnlyView):
     def __init__(self):
         super().__init__(timeout=None)
 
@@ -447,7 +448,7 @@ class FeedbackView(discord.ui.View):
             )
         await interaction.response.send_modal(FeedbackEditModal(message, embed))
 
-class FeedbackPanelView(discord.ui.View):
+class FeedbackPanelView(OwnerOnlyView):
     def __init__(self):
         super().__init__(timeout=None)
 

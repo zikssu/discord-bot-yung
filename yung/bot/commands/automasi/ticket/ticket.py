@@ -1,4 +1,5 @@
 import asyncio
+from io import BytesIO
 import re
 from datetime import datetime, timezone
 
@@ -7,6 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot.commands.automasi.common import BANNER_URL
+from bot.owner import OwnerOnlyView
 from bot.store import read, write
 
 PARTNERSHIP_MANAGER_ROLE_ID = "1556885212640710686"
@@ -153,7 +155,7 @@ class TicketCategorySelect(discord.ui.Select):
         )
 
 
-class TicketPanelView(discord.ui.View):
+class TicketPanelView(OwnerOnlyView):
     def __init__(self, cog):
         super().__init__(timeout=None)
         self.add_item(TicketCategorySelect(cog))
@@ -259,7 +261,7 @@ class PartnershipModal(discord.ui.Modal):
         )
 
 
-class TicketActionView(discord.ui.View):
+class TicketActionView(OwnerOnlyView):
     def __init__(self, cog, ticket_key: str):
         super().__init__(timeout=None)
         self.cog = cog
@@ -314,7 +316,7 @@ class PartnershipTicketView(TicketActionView):
         )
 
 
-class PartnershipReviewView(discord.ui.View):
+class PartnershipReviewView(OwnerOnlyView):
     def __init__(self, cog, ticket_key: str):
         super().__init__(timeout=None)
         self.cog = cog
@@ -436,7 +438,7 @@ class SetupPartnershipChannelSelect(discord.ui.ChannelSelect):
         )
 
 
-class SetupPartnershipChannelView(discord.ui.View):
+class SetupPartnershipChannelView(OwnerOnlyView):
     def __init__(
         self,
         cog,
@@ -453,7 +455,7 @@ class SetupPartnershipChannelView(discord.ui.View):
         )
 
 
-class PartnershipJoinView(discord.ui.View):
+class PartnershipJoinView(OwnerOnlyView):
     def __init__(self, invite_link: str):
         super().__init__(timeout=None)
         self.add_item(
@@ -509,7 +511,7 @@ class TicketCog(commands.Cog):
     @app_commands.default_permissions(manage_channels=True)
     @app_commands.describe(
         channel="Channel teks untuk panel dan thread tiket",
-        log_channel="Channel khusus untuk log tiket dibuka dan ditutup",
+        log_channel="Channel khusus untuk transcript tiket",
     )
     async def setup_ticket(
         self,
@@ -524,7 +526,7 @@ class TicketCog(commands.Cog):
             )
 
         await interaction.response.send_message(
-            "🎫 **Setup panel tiket**\n"
+            "# 🎫 Setup Ticket Panel (Partnership Channel Target)\n"
             "Pilih channel untuk pengumuman partnership yang disetujui.",
             view=SetupPartnershipChannelView(
                 self,
@@ -833,12 +835,10 @@ class TicketCog(commands.Cog):
                 message_id=opened_message.id,
             )
 
-            logged = await self._log_event(
+            logged = await self._log_transcript(
                 guild,
                 current,
-                "Ticket Dibuka",
                 ticket_record,
-                interaction.user,
                 thread,
             )
 
@@ -1136,21 +1136,27 @@ class TicketCog(commands.Cog):
                 )
 
             await interaction.response.defer(ephemeral=True, thinking=True)
+            await interaction.edit_original_response(
+                content="🗑️ Permintaan penghapusan ticket sedang diproses."
+            )
             logged = False
             try:
                 await thread.delete(reason=f"Ticket dihapus oleh {member}")
             except discord.Forbidden as exc:
                 print(f"[Ticket] Tidak dapat menghapus thread {thread.id}: {exc}")
-                return await interaction.followup.send(
-                    "Bot tidak memiliki izin **Manage Threads** untuk "
-                    "menghapus ticket ini.",
-                    ephemeral=True,
+                return await interaction.edit_original_response(
+                    content=(
+                        "Bot tidak memiliki izin **Manage Threads** untuk "
+                        "menghapus ticket ini."
+                    ),
                 )
             except discord.HTTPException as exc:
                 print(f"[Ticket] Discord gagal menghapus thread {thread.id}: {exc}")
-                return await interaction.followup.send(
-                    "Ticket gagal dihapus oleh Discord. Silakan coba kembali.",
-                    ephemeral=True,
+                return await interaction.edit_original_response(
+                    content=(
+                        "Ticket gagal dihapus oleh Discord. Silakan coba "
+                        "kembali."
+                    ),
                 )
 
             config = guild_settings(guild.id)
@@ -1170,13 +1176,11 @@ class TicketCog(commands.Cog):
                 ]
             )
 
-        result = "🗑️ Ticket berhasil dihapus."
         if not logged:
-            result += "\n⚠️ Ticket log gagal dikirim atau channel log belum disiapkan."
-        await interaction.followup.send(
-            result,
-            ephemeral=True,
-        )
+            print(
+                f"[Ticket] Ticket {ticket_key} dihapus, tetapi log penghapusan "
+                "gagal dikirim atau channel log belum disiapkan."
+            )
 
     @staticmethod
     def _is_assigned_staff(member: discord.Member, record: dict) -> bool:
@@ -1259,13 +1263,12 @@ class TicketCog(commands.Cog):
             config = guild_settings(guild.id)
             logged = bool(
                 config
-                and await self._log_event(
+                and await self._log_transcript(
                     guild,
                     config,
-                    "Ticket Ditutup",
                     record,
-                    user,
                     thread,
+                    closed_by=user,
                 )
             )
             current_tickets = [
@@ -1340,6 +1343,98 @@ class TicketCog(commands.Cog):
             return False
         except discord.HTTPException as exc:
             print(f"[Ticket] Discord gagal mengirim log ticket: {exc}")
+            return False
+        return True
+
+    async def _log_transcript(
+        self,
+        guild: discord.Guild,
+        config: dict,
+        record: dict,
+        thread: discord.Thread,
+        *,
+        closed_by: discord.abc.User | None = None,
+    ) -> bool:
+        log_channel_id = config.get("log_channel_id")
+        log_channel = (
+            guild.get_channel(int(log_channel_id))
+            if log_channel_id
+            else None
+        )
+        if not isinstance(log_channel, discord.TextChannel):
+            print(
+                f"[Ticket] Channel transcript tidak ditemukan "
+                f"untuk server {guild.id}."
+            )
+            return False
+
+        created_at = record.get("created_at", "Tidak diketahui")
+        lines = [
+            f"Transcript Ticket #{record['ticket_number']:04d}",
+            f"Kategori: {record['category']}",
+            f"Pembuat: <@{record['opener_id']}> ({record['opener_id']})",
+            f"Dibuat: {created_at}",
+            f"Thread: {thread.name} ({thread.id})",
+        ]
+        if closed_by:
+            lines.extend(
+                (
+                    f"Ditutup oleh: {closed_by} ({closed_by.id})",
+                    f"Waktu ditutup: {datetime.now(timezone.utc).isoformat()}",
+                )
+            )
+        if record.get("reason"):
+            lines.extend(("", f"Keperluan: {record['reason']}"))
+        lines.extend(("", "=== Riwayat Pesan ===", ""))
+
+        try:
+            async for message in thread.history(
+                limit=None,
+                oldest_first=True,
+            ):
+                author_name = getattr(
+                    message.author,
+                    "display_name",
+                    message.author.name,
+                )
+                lines.append(
+                    f"[{message.created_at.isoformat()}] "
+                    f"{author_name} ({message.author.id}):"
+                )
+                lines.append(message.clean_content or "[Pesan tanpa teks]")
+                for embed in message.embeds:
+                    if embed.title:
+                        lines.append(f"Embed: {embed.title}")
+                    if embed.description:
+                        lines.append(embed.description)
+                    lines.extend(
+                        f"{field.name}: {field.value}"
+                        for field in embed.fields
+                    )
+                lines.extend(
+                    f"Lampiran: {attachment.filename} ({attachment.url})"
+                    for attachment in message.attachments
+                )
+                lines.append("")
+
+            transcript = "\n".join(lines).encode("utf-8")
+            await log_channel.send(
+                content=(
+                    f"🧾 Transcript Ticket "
+                    f"#{record['ticket_number']:04d} · {record['category']}"
+                ),
+                file=discord.File(
+                    BytesIO(transcript),
+                    filename=(
+                        f"ticket-{record['ticket_number']:04d}-transcript.txt"
+                    ),
+                ),
+            )
+        except discord.Forbidden as exc:
+            print(f"[Ticket] Tidak dapat mengirim transcript ticket: {exc}")
+            return False
+        except discord.HTTPException as exc:
+            print(f"[Ticket] Discord gagal mengirim transcript ticket: {exc}")
             return False
         return True
 

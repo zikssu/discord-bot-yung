@@ -135,6 +135,7 @@ class AiChatCog(commands.Cog):
     async def on_message(self, message: discord.Message):
         if (
             message.author.bot
+            or message.author.id != self.bot.owner_id
             or not message.guild
             or not message.content.strip()
         ):

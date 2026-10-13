@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from bot.owner import OwnerOnlyView
 from bot.store import read, write
 from bot.commands.automasi.common import BANNER_URL
 from io import BytesIO
@@ -136,7 +137,7 @@ class MootsUploadFirstModal(discord.ui.Modal):
         # Langsung simpan. Tidak ada langkah kedua / modal Threads.
         await self.cog.save_moots_profile(interaction, values)
 
-class MootsPanelView(discord.ui.View):
+class MootsPanelView(OwnerOnlyView):
     def __init__(self, cog):
         super().__init__(timeout=None)
         self.cog = cog
@@ -152,7 +153,7 @@ class MootsPanelView(discord.ui.View):
             MootsUploadFirstModal(self.cog, "upload")
         )
 
-class MootsProfileView(discord.ui.View):
+class MootsProfileView(OwnerOnlyView):
     def __init__(self, cog, profile, emoji_ids=None):
         super().__init__(timeout=None)
         self.cog = cog

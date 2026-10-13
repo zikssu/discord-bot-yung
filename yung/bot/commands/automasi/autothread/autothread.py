@@ -175,6 +175,7 @@ class AutoThreadCog(commands.Cog):
         if (
             not message.guild
             or message.author.bot
+            or message.author.id != self.bot.owner_id
             or not isinstance(
                 message.channel,
                 discord.TextChannel

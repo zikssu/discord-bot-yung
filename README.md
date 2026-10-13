@@ -223,6 +223,7 @@ Buat file `.env` di root project dengan isi berikut:
 DISCORD_TOKEN=TOKEN_BOT_DISCORD_KAMU
 DISCORD_GUILD_ID=ID_SERVER_DISCORD_OPTIONAL
 GEMINI_API_KEY=API_KEY_GEMINI_KAMU
+BOT_OWNER_ID=DISCORD_USER_ID_OWNER
 ```
 
 ### Penjelasan variabel
@@ -230,6 +231,7 @@ GEMINI_API_KEY=API_KEY_GEMINI_KAMU
 - `DISCORD_TOKEN` — token bot Discord dari developer portal.
 - `DISCORD_GUILD_ID` — ID server target untuk sync command ke guild spesifik. Jika tidak diisi, bot akan melakukan sync global.
 - `GEMINI_API_KEY` — API key Gemini yang digunakan oleh fitur AI Chat.
+- `BOT_OWNER_ID` — Discord User ID Owner yang diizinkan menggunakan command dan fitur otomatis bot. Variabel ini wajib diisi.
 
 > Penting: bot harus diundang ke server dengan permission yang sesuai serta scope `bot` dan `applications.commands`.
 

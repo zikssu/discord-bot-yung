@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from bot.owner import OwnerOnlyView
 from bot.store import read, write
 from bot.commands.automasi.common import BANNER_URL
 from datetime import datetime, timezone
@@ -215,7 +216,7 @@ class CategorySelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(PostModal(self.cog, self.values[0]))
 
-class CreateView(discord.ui.View):
+class CreateView(OwnerOnlyView):
     def __init__(self, cog):
         super().__init__(timeout=300)
         self.add_item(CategorySelect(cog))
@@ -554,7 +555,7 @@ class EditPostModal(discord.ui.Modal):
             ephemeral=True,
         )
 
-class PostView(discord.ui.View):
+class PostView(OwnerOnlyView):
     def __init__(self, cog, post_id, emoji_ids=None):
         super().__init__(timeout=None)
         self.cog = cog
@@ -897,7 +898,7 @@ class Feed(commands.Cog):
             ephemeral=True,
         )
 
-class FeedPanelView(discord.ui.View):
+class FeedPanelView(OwnerOnlyView):
     def __init__(self, cog):
         super().__init__(timeout=None)
         self.cog = cog

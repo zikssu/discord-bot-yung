@@ -1,12 +1,30 @@
 import os, discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from bot.loader import load_extensions
+from bot.owner import owner_interaction_check
 load_dotenv()
+
+owner_id = os.getenv("BOT_OWNER_ID")
+if not owner_id:
+    raise RuntimeError("BOT_OWNER_ID belum diatur di .env")
+try:
+    BOT_OWNER_ID = int(owner_id)
+except ValueError as error:
+    raise RuntimeError("BOT_OWNER_ID harus berupa Discord User ID numerik.") from error
+if BOT_OWNER_ID <= 0:
+    raise RuntimeError("BOT_OWNER_ID harus berupa Discord User ID yang valid.")
+
 intents=discord.Intents.default()
 intents.guilds=True
 intents.guild_messages=True
 intents.message_content=True
+
+class OwnerOnlyCommandTree(app_commands.CommandTree):
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return await owner_interaction_check(interaction)
+
 class yung(commands.Bot):
     async def setup_hook(self):
         await load_extensions(self)
@@ -32,6 +50,8 @@ bot=yung(
     command_prefix="y!",
     intents=intents,
     status=BOT_STATUS,
+    owner_id=BOT_OWNER_ID,
+    tree_cls=OwnerOnlyCommandTree,
 )
 @bot.event
 async def on_ready():
